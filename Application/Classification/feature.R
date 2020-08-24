@@ -1,10 +1,10 @@
+# classification helper functions for classifyECIS.R
+
 library(klaR)
 library(pracma)
 
-# extract features and perform classfication by LDA, QDA, RDA
-
 # extract feature from one sequence
-# 1. resh - resistance at 17 hours 
+# 1. resh - resistance at selected time
 # 2. maxres - the maximum resistance across the time series 
 # 3. endofrun - average resistance over last 5 time points in time series 
 extractFeat1 = function(res, tim, cellline){
@@ -54,22 +54,12 @@ extractFeat = function(method, cellline = c('mdck', 'bsc'), freq = 1){
       }
     }
   }
-
+  
   # combine with d and tau
   if (cellline == 'mdck'){
-    load("./Applications2/Univariate/mdck.RData")
-    load("./Applications2/Univariate/mdck_g2cd_jan11.RData")
-    for (i in 1:1){
-      cptresults[[i]]$mat_wt = cptresults_wt[[i]]$mat_wt
-      cptresults[[i]]$mat_step = cptresults_wt[[i]]$mat_step
-    }
+    load("./Application/Univariate/mdck.RData")
   }else if (cellline == 'bsc'){
-    load("./Applications2/Univariate/bsc.RData")
-    load("./Applications2/Univariate/bsc_g2cd_jan11.RData")
-    for (i in 1:1){
-      cptresults[[i]]$mat_wt = cptresults_wt[[i]]$mat_wt
-      cptresults[[i]]$mat_step = cptresults_wt[[i]]$mat_step
-    }
+    load("./Application/Univariate/bsc.RData")
   }
   mat_ftd = merge(featmat, cptresults[[freq]][[method]])
   return(mat_ftd)
@@ -106,21 +96,21 @@ classify1 = function(mat_ftd, testexpt,
   # using only tau
   set.seed(0)
   model_t = rda(inf ~ tau, data = train,
-                 gamma = gamma, lambda = lambda)
+                gamma = gamma, lambda = lambda)
   pred_t = as.numeric(predict(model_t, test)$class) - 1
   acc_t = 1 - mean(abs(pred_t - test$inf))
   lambda_t = model_t$regularization['lambda']
   # using only d
   set.seed(0)
   model_d = rda(inf ~ d, data = train,
-                 gamma = gamma, lambda = lambda)
+                gamma = gamma, lambda = lambda)
   pred_d = as.numeric(predict(model_d, test)$class) - 1
   acc_d = 1 - mean(abs(pred_d - test$inf))
   lambda_d = model_d$regularization['lambda']
   # using d and tau and one other original feature
   #
   model_td1 = rda(inf ~ d + tau + resh, data = train,
-                 gamma = gamma, lambda = lambda)
+                  gamma = gamma, lambda = lambda)
   pred_td1_train = as.numeric(predict(model_td1, train)$class) - 1
   acc_td1_train = 1 - mean(abs(pred_td1_train - train$inf))
   pred_td1 = as.numeric(predict(model_td1, test)$class) - 1
@@ -161,16 +151,10 @@ classify = function(mat_ftd){
   lda_mat = qda_mat = rda_mat = matrix(NA, 0, 10)
   for (x in 1:4){
     lda1 = classify1(mat_ftd, x, 'lda')
-    qda1 = classify1(mat_ftd, x, 'qda')
-    rda1 = classify1(mat_ftd, x, 'rda')
     lda_mat = rbind(lda_mat, lda1)
-    qda_mat = rbind(qda_mat, qda1)
-    rda_mat = rbind(rda_mat, rda1)
   }
   
-  return(list(lda_mat = lda_mat, qda_mat = qda_mat, rda_mat = rda_mat))
+  return(list(lda_mat = lda_mat))
 }
-
-
 
 

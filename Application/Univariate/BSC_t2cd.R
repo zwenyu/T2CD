@@ -57,7 +57,7 @@ ecisfreq = function(f){
   return(list(mat_step = mat_step, mat_sigmoid = mat_sigmoid))
 }
 
-cptresults_wt = parLapply(cl, 1, ecisfreq)
+cptresults = parLapply(cl, 1, ecisfreq)
 
 save.image('./Application/Univariate/bsc.RData')
 stopCluster(cl)
