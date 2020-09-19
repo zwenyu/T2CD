@@ -36,13 +36,14 @@ ecisfreq = function(f){
         
         # step method
         s = proc.time()
-        res_step = t2cd_step.mv(dat, use_arf = F)
+        res_step = t2cd_step.mv(dat, tau.range = c(5, 45), use_arf = F)
         ptime = proc.time() - s
         mat_step = rbind(mat_step, c(res_step$d, mean(res_step$tau), x, f, g, i, M, ptime[1]))
         
         # weighted method        
         s = proc.time()
-        res_sigmoid = t2cd_sigmoid.mv(dat)
+        res_sigmoid = t2cd_sigmoid.mv(dat,
+                                      tau.range = c(5, 45), init.tau = c(10, 25, 40))
         ptime = proc.time() - s
         mat_sigmoid = rbind(mat_sigmoid, c(res_sigmoid$d, mean(res_sigmoid$tau), x, f, g, i, M, ptime[1]))
       }
