@@ -64,23 +64,15 @@ t2cd_sigmoid.mv = function(dat, t.max = 72, tau.range = c(10, 50),
     init.param[k,] = res_k$par
     init.d[k] = res_k$d
   }
-  if (mean(init.d) < 0.5){
-    dflag = 'original'
-    x.2 = res_mean
-    init.d.2 = init.d
-  }else{
-    dflag = 'fdiff'
-    x.2 = t(diff(t(res_mean), 1))
-    init.d.2 = init.d - 1
-  }
-  
+
+  dflag = 'original'
+  x.2 = res_mean
+  init.d.2 = init.d
+
   # loglikelihood, penalty to enforce tau within tau.range
   negloglik_partial_pen = function(param){
     m = param[1:p]  
     dfrac = param[p+1]
-    if (dfrac<=-0.5 | dfrac>=0.5){
-      return(1e+10)
-    }
     
     # weights
     wt_cp = sigmoid(alpha0+alpha1*tim_cp) # 0 to 1
@@ -88,11 +80,7 @@ t2cd_sigmoid.mv = function(dat, t.max = 72, tau.range = c(10, 50),
                wt_cp,
                matrix(rep(wt_cp[,ncol(wt_cp)], N-tau.idx[length(tau.idx)]), p, byrow = F))
     
-    if (dflag == 'original'){
-      x.2m = x.2-m
-    }else{
-      x.2m = cbind(rep(0, p), x.2-m)
-    }
+    x.2m = x.2-m
     diff_p = t(diffseries_keepmean(t(wt*(x.2m)), dfrac))
     
     neglogL = -sum((1-wt)*ll.1.mat) + 0.5*log(2*pi)*sum(wt) + 0.5*sum(wt) +
@@ -106,9 +94,6 @@ t2cd_sigmoid.mv = function(dat, t.max = 72, tau.range = c(10, 50),
   loglik = function(param){
     m = param[1:p]  
     dfrac = param[p+1]
-    if (dfrac<=-0.5 | dfrac>=0.5){
-      return(1e+10)
-    }
     
     # weights
     wt_cp = sigmoid(alpha0+alpha1*tim_cp) # 0 to 1
@@ -116,11 +101,7 @@ t2cd_sigmoid.mv = function(dat, t.max = 72, tau.range = c(10, 50),
                wt_cp,
                matrix(rep(wt_cp[,ncol(wt_cp)], N-tau.idx[length(tau.idx)]), p, byrow = F))
     
-    if (dflag == 'original'){
-      x.2m = x.2-m
-    }else{
-      x.2m = cbind(rep(0, p), x.2-m)
-    }
+    x.2m = x.2-m
     diff_p = t(diffseries_keepmean(t(wt*(x.2m)), dfrac))
     
     logL = sum((1-wt)*ll.1.mat) - 0.5*log(2*pi)*sum(wt) - 0.5*sum(wt) -
@@ -137,13 +118,8 @@ t2cd_sigmoid.mv = function(dat, t.max = 72, tau.range = c(10, 50),
   
   opt_param = c(alpha0, alpha1, optim_params$par)
   opt_logL = loglik(optim_params$par)
-  if (dflag == 'original'){
-    opt_d = opt_param[3*p+1]
-    univ_d = init.param[,4]
-  }else{
-    opt_d = opt_param[3*p+1] + 1
-    univ_d = init.param[,4] + 1
-  }
+  opt_d = opt_param[3*p+1]
+  univ_d = init.param[,4]
   
   # weights
   wt_cp = sigmoid(alpha0+alpha1*tim_cp) # 0 to 1

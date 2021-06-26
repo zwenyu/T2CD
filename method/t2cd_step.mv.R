@@ -51,31 +51,17 @@ t2cd_step.mv = function(dat, t.max = 72, tau.range = c(10, 50), deg = 3,
   }
   
   # preprocessing
-  if (mean(init.d) < 0.5){
-    dflag = 'original'
-    if (use_scale){
-      reg2 = t(scale(t(reg2), center = F))
-    }
-    x.2 = reg2
-    init.d.2 = init.d
-  }else{
-    dflag = 'fdiff'
-    if (use_scale){
-      reg2 = t(scale(t(reg2), center = F))
-      x.2 = reg2[, -1] - res[, -ncol(reg2)]/attributes(reg2)$`scaled:scale`
-    }else{
-      x.2 = reg2[, -1] - res[, -ncol(reg2)] 
-    }
-    init.d.2 = init.d - 1
+  dflag = 'original'
+  if (use_scale){
+    reg2 = t(scale(t(reg2), center = F))
   }
+  x.2 = reg2
+  init.d.2 = init.d
   
   # helper functions for loglikelihood
   negloglik = function(param){
     m = param[1:p]
     dfrac = param[p+1]
-    if (dfrac<=-0.5 | dfrac>=0.5){
-      return(1e+10)
-    }
     
     n.2 = rowSums(!is.na(x.2))
     diff_p = t(diffseries_keepmean(t(x.2-m), dfrac))
@@ -88,22 +74,13 @@ t2cd_step.mv = function(dat, t.max = 72, tau.range = c(10, 50), deg = 3,
   
   # optimizing
   if (use_arf){
-    if (dflag == 'original'){
-      opt = optimize(fima.ll.auto, interval = c(-0.5, 0.5), x = reg2, 
-                     maximum = TRUE, tol = .Machine$double.eps)
-    }else{
-      opt = optimize(fima.ll.auto, interval = c(0.5, 1.5), x = reg2, 
-                     maximum = TRUE, tol = .Machine$double.eps)
-    }
+    opt = optimize(fima.ll.auto, interval = c(-2.5, 1.5), x = reg2, 
+                   maximum = TRUE, tol = .Machine$double.eps)
     d = opt$maximum
   }else{
     optim_params = optim(par = c(rowMeans(x.2, na.rm = T), mean(init.d.2)),
                          fn = negloglik, method = "BFGS")
-    if (dflag == 'original'){
-      d = optim_params$par[p + 1]
-    }else{
-      d = optim_params$par[p + 1] + 1  
-    }
+    d = optim_params$par[p + 1]
   }
   
   return(list(res = res, tim = tim, tau.idx = tau.idx,

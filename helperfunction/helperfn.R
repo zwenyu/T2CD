@@ -24,7 +24,7 @@ extractdata = function(dat.com, dat.info, expt, freq, gel, inf, nor, null=0, wou
 # noise allowed to have different variance for the two segments, regime 1 noise allowed to be heteroscedastic
 # if multivariate, assumes all p sequences change at same location tau+1 if only one tau.percent provided
 # if multivariate, observations are aligned
-sim.simple = function(Tend=70, N=400, tau.percent=0.2, d=0.1, phip=0, piq=0,
+sim.simple = function(Tend=70, N=420, tau.percent=0.2, d=0.1, phip=0, piq=0,
                       p=1, pcoeff=NA, deg=5, regime1 = c('poly', 'gp'),
                       sig1=2, sig2=0.5, hetero1=F, share_d=T, seed=0){
   # Tend: ending t

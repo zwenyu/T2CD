@@ -25,14 +25,7 @@ t2cd_step = function(dat, t.max = 72, tau.range = c(10, 50), deg = 3,
   res1 = search_dtau_step(dat, t.max, tau.range, deg, dflag = 'original',
                            seqby = seqby, resd.seqby = resd.seqby,
                            use_arf = use_arf, use_scale = use_scale)
-  res2 = search_dtau_step(dat, t.max, tau.range, deg, dflag = 'fdiff',
-                           seqby = seqby, resd.seqby = resd.seqby,
-                           use_arf = use_arf, use_scale = use_scale)
-  if (res1$logL > res2$logL){
-    return(res1)
-  }else{
-    return(res2)
-  }
+  return(res1)
 }
 
 ### helper and plotting functions
@@ -102,9 +95,6 @@ search_dtau_step = function(dat, t.max = 72, tau.range = c(10, 50), deg = 3,
     negloglik = function(param){
       m = param[1]
       dfrac = param[2]
-      if (dfrac<=-0.5 | dfrac>=0.5){
-        return(1e+10)
-      }
       
       diff_p = c(diffseries_keepmean(matrix(x.2-m, ncol = 1), dfrac))
       

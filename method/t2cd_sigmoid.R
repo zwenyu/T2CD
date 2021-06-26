@@ -22,13 +22,7 @@ t2cd_sigmoid = function(dat, t.max = 72, tau.range = c(10, 50),
   # use_scale: if true, scale time series  
   res1 = search_dtau_sigmoid(dat, t.max, tau.range, init.tau, deg, C, dflag = 'original',
                          seqby = seqby, resd.seqby = resd.seqby, use_scale = use_scale)
-  res2 = search_dtau_sigmoid(dat, t.max, tau.range, init.tau, deg, C, dflag = 'fdiff',
-                         seqby = seqby, resd.seqby = resd.seqby, use_scale = use_scale)
-  if (res1$logL > res2$logL){
-    return(res1)
-  }else{
-    return(res2)
-  }
+  return(res1)
 }
 
 ### helper and plotting functions
@@ -107,9 +101,6 @@ search_dtau_sigmoid = function(dat, t.max = 72, tau.range = c(10, 50),
     alpha1 = param[2]
     m = param[3]  
     dfrac = param[4]
-    if (dfrac<=-0.5 | dfrac>=0.5){
-      return(1e+10)
-    }
 
     # weights
     wt_cp = sigmoid(alpha0+alpha1*tim_cp) # 0 to 1
