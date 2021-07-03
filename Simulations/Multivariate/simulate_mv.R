@@ -48,6 +48,7 @@ cpt_k = function(k){
   
   tau_step = tau_sigmoid = tau_ecp = tau_ecp.diff = 
     d_univ_step = d_univ_sigmoid = d_univ_ecp = d_univ_ecp.diff = d_univ_seg = d_univ_truetau =  
+    iter_step =
     matrix(NA, dN, tauN, dimnames = list(d_list, true.tau))
   
   d_step = ptime_step =
@@ -69,6 +70,7 @@ cpt_k = function(k){
     tau_step[i,] = res_step$tau
     d_univ_step[i,] = res_step$univ_d
     d_step[i] = res_step$d
+    iter_step[i] = res_step$iter_k
     ptime_step[i] = ptime[1]
 
     # T2CD-sigmoid
@@ -114,7 +116,7 @@ cpt_k = function(k){
     d_truetau[i] = res_truetau$d
     ptime_truetau[i,] = ptime[1]
   }
-  return(list(tau_step = tau_step, d_univ_step = d_univ_step, d_step = d_step, ptime_step = ptime_step,
+  return(list(tau_step = tau_step, d_univ_step = d_univ_step, d_step = d_step, ptime_step = ptime_step, iter_step = iter_step,
               tau_sigmoid = tau_sigmoid, d_univ_sigmoid = d_univ_sigmoid, d_sigmoid = d_sigmoid, ptime_sigmoid = ptime_sigmoid,
               tau_ecp = tau_ecp, d_univ_ecp = d_univ_ecp, d_ecp = d_ecp, ptime_ecp = ptime_ecp,
               tau_ecp.diff = tau_ecp.diff, d_univ_ecp.diff = d_univ_ecp.diff, d_ecp.diff = d_ecp.diff, ptime_ecp.diff = ptime_ecp.diff,

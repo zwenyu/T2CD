@@ -123,14 +123,9 @@ diffseries_keepmean = function(x, d, incre = F){
 
 ### helper functions
 
-# simulates univariate FI series; first difference is FI if d>0.5
-sim.fi = function(N, d, sig=1){
+# simulates univariate FI series
+sim.fi = function(N, eff.d, sig=1){
   noise = rnorm(N, sd = sig) # ordered from 1 to N
-  if (d > 0.5){
-    eff.d = d - 1
-  }else{
-    eff.d = d
-  }
   dn_coeff = sapply(1:N, function(k){return(choose(eff.d, k)*(-1)**(k+1))})
   trend = c(0)
   s = c(noise[1])
@@ -138,29 +133,15 @@ sim.fi = function(N, d, sig=1){
     s = c(s, sum(s[i:1]*dn_coeff[1:i]) + noise[i+1])
     trend = c(trend, sum(s[i:1]*dn_coeff[1:i]))
   }
-  # d>0.5, take cumulative sums to get the observed sequence
-  if (d > 0.5){
-    s = cumsum(s)
-    trend = s - noise
-  }
   return(list(s = s, trend = trend))
 }
 
 # simulates univariate ARFIMA series; first difference is ARFIMA if d>0.5
-sim.arf = function(N, d, phip, piq, sig=1){
+sim.arf = function(N, eff.d, phip, piq, sig=1){
   phicoeff = runif(phip)
   picoeff = runif(piq)
-  if (d > 0.5){
-    eff.d = d - 1
-  }else{
-    eff.d = d
-  }
   s = arfima::arfima.sim(N, model = list(phi = phicoeff, dfrac = eff.d, theta = picoeff),
                  sigma2 = sig^2)
-  # d>0.5, take cumulative sums to get the observed sequence
-  if (d > 0.5){
-    s = cumsum(s)
-  }
   return(list(s = s, phicoeff = phicoeff, picoeff = picoeff))
 }
 
