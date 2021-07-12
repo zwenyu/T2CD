@@ -1,7 +1,7 @@
 # obtain classification results for infection status
 # set working directory as T2CD
 
-source('./Applications/Classification/feature.R')
+source('./Application/Classification/feature.R')
 source('./helperfunction/helperfn.R')
 
 # extract features

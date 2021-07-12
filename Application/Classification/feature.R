@@ -30,7 +30,6 @@ extractFeat = function(method, cellline = c('mdck', 'bsc'), freq = 1){
     load("Cornell_MDCK_M_hominis_runs.RData")
   }else if (cellline == 'bsc'){
     load("Cornell_BSC_M_hominis_runs.RData")
-    dat.com = bsc
   }
   dat.info = list(gel=gel, inf=inf, nor=nor, null=null, wou=wou)
   t.max = 72
