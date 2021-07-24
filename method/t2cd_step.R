@@ -248,3 +248,28 @@ plot.t2cd_step = function(results, tau.range = c(10, 50), deg = 3,
               var.resd1 = var.resd1))
 }
 
+# parametric bootstrap using outputs from t2cd_step and plot.t2cd_step
+bootstrap_sample = function(results, plot_results, seed = 0){
+  
+  set.seed(seed)
+  res = results$res
+  tim = results$tim
+  N = length(res)
+  opt_idx = results$idx
+  
+  # regime 1
+  fit.vals1 = plot_results$fit.vals1
+  var.resd1 = plot_results$var.resd1
+  noise1 = rnorm(opt_idx, 0, sqrt(var.resd1))
+  
+  # regime 2
+  opt_d = results$d
+  fit.vals2 = plot_results$fit.vals2
+  sd.resd2 = sd(res[(opt_idx+1):N]-fit.vals2)
+  sim = sim.fi(N-opt_idx, opt_d, sd.resd2)  
+  seq_fi = sim$s
+  
+  samp = c(fit.vals1 + noise1, seq_fi + fit.vals1[opt_idx])
+  
+  return(list(res=matrix(samp, nrow=1), tim=tim))  
+}

@@ -1,6 +1,7 @@
 # obtain classification results for infection status
 # set working directory as T2CD
 
+require(dplyr)
 source('./Application/Classification/feature.R')
 source('./helperfunction/helperfn.R')
 

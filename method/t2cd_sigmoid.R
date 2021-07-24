@@ -296,5 +296,6 @@ plot.t2cd_sigmoid = function(results, tau.range = c(10, 50), deg = 3,
   abline(v = tau.range, lty = 1, col = "red")
   
   return(list(fit.vals = fit.vals, 
-              var.resd1 = var.resd1*attributes(res_mean)$'scaled:scale'^2))
+              var.resd1 = var.resd1*attributes(res_mean)$'scaled:scale'^2,
+              wt = wt))
 }
