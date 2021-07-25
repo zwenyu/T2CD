@@ -45,3 +45,16 @@ cptresults = parLapply(cl, 1:num_boot, boot_k)
 
 save.image('./Application/Univariate/mdck_boot.RData')
 stopCluster(cl)
+
+# retrieve results
+# results$d # 1.118006
+# results$tau # 39.25373
+# # CI
+# tau = c()
+# d = c()
+# for (i in 1:num_boot){
+#   tau = c(tau, cptresults[[i]]$tau)
+#   d = c(d, cptresults[[i]]$d)
+# }
+# quantile(d, probs=c(0.05,0.95)) # 0.9771801 1.1961741
+# quantile(tau, probs=c(0.05,0.95)) # 23.75685 48.21105
