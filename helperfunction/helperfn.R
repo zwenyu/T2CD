@@ -140,7 +140,7 @@ sim.fi = function(N, eff.d, sig=1){
 sim.arf = function(N, eff.d, phip, piq, sig=1){
   phicoeff = runif(phip)
   picoeff = runif(piq)
-  if (d>=0.5){
+  if (eff.d>=0.5){
     dfrac = eff.d-1
     dint = 1
   }else{
