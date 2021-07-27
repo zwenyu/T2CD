@@ -70,7 +70,7 @@ sim.simple = function(Tend=70, N=420, tau.percent=0.2, d=0.1, phip=0, piq=0,
      seq_reg1 = 10*gaussprocess(m = tau.idx1_i) 
     }
     if (phip>0 | piq>0){
-      sim = sim.arf(N-tau.idx1_i, d+i*0.1, phip, piq, sig2)    
+      sim = sim.arf(N-tau.idx1_i, d, phip, piq, sig2)    
       seq_arfima = sim$s
       armacoeff = list(ar = sim$phicoeff, ma = sim$picoeff)
     }else{
@@ -140,8 +140,15 @@ sim.fi = function(N, eff.d, sig=1){
 sim.arf = function(N, eff.d, phip, piq, sig=1){
   phicoeff = runif(phip)
   picoeff = runif(piq)
-  s = arfima::arfima.sim(N, model = list(phi = phicoeff, dfrac = eff.d, theta = picoeff),
-                 sigma2 = sig^2)
+  if (d>=0.5){
+    dfrac = eff.d-1
+    dint = 1
+  }else{
+    dfrac = eff.d
+    dint = 0
+  }
+  s = arfima::arfima.sim(N, model = list(phi = phicoeff, dfrac = dfrac, dint = dint,
+                                         theta = picoeff), sigma2 = sig^2)
   return(list(s = s, phicoeff = phicoeff, picoeff = picoeff))
 }
 
