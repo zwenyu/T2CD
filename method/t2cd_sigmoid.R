@@ -101,9 +101,6 @@ search_dtau_sigmoid = function(dat, t.max = 72, tau.range = c(10, 50),
     alpha1 = param[2]
     m = param[3]  
     dfrac = param[4]
-    if (dfrac<=-0.5 | dfrac>=1.5){
-      return(1e+10)
-    }
     
     # weights
     wt_cp = sigmoid(alpha0+alpha1*tim_cp) # 0 to 1

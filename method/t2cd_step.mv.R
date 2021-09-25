@@ -89,9 +89,6 @@ t2cd_step.mv = function(dat, t.max = 72, tau.range = c(10, 50), deg = 3,
     negloglik = function(param){
       m = param[1:p]
       dfrac = param[p+1]
-      if (dfrac<=-0.5 | dfrac>=1.5){
-        return(1e+10)
-      }
       
       n.2 = rowSums(!is.na(x.2))
       diff_p = t(diffseries_keepmean(t(x.2-m), dfrac))

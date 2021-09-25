@@ -95,9 +95,6 @@ search_dtau_step = function(dat, t.max = 72, tau.range = c(10, 50), deg = 3,
     negloglik = function(param){
       m = param[1]
       dfrac = param[2]
-      if (dfrac<=-0.5 | dfrac>=1.5){
-        return(1e+10)
-      }
       
       diff_p = c(diffseries_keepmean(matrix(x.2-m, ncol = 1), dfrac))
       

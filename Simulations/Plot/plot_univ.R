@@ -73,6 +73,7 @@ p = ggplot(tau_stationary, aes(x = factor(tau), y = est, fill = factor(d))) +
   geom_abline(data = slopeline_tau_stationary, aes(slope = slope, intercept = intercept),
               linetype = 'dashed')
 p + labs(x = expression(paste("True ", tau)), y = expression(paste("Estimated ", tau)), fill = 'True d') + 
+  scale_fill_grey() + scale_color_grey() + 
   theme_bw(base_size = 20) + 
   theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 10),
         strip.text.x = element_text(size = 10))
@@ -86,6 +87,7 @@ p = ggplot(tau_nonstationary, aes(x = factor(tau), y = est, fill = factor(d))) +
   geom_abline(data = slopeline_tau_nonstationary, aes(slope = slope, intercept = intercept),
               linetype = 'dashed')
 p + labs(x = expression(paste("True ", tau)), y = expression(paste("Estimated ", tau)), fill = 'True d') + 
+  scale_fill_grey() + scale_color_grey() + 
   theme_bw(base_size = 20) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 10),
         strip.text.x = element_text(size = 10))

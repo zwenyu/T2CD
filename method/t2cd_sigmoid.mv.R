@@ -73,9 +73,6 @@ t2cd_sigmoid.mv = function(dat, t.max = 72, tau.range = c(10, 50),
   negloglik_partial_pen = function(param){
     m = param[1:p]  
     dfrac = param[p+1]
-    if (dfrac<=-0.5 | dfrac>=1.5){
-      return(1e+10)
-    }
         
     # weights
     wt_cp = sigmoid(alpha0+alpha1*tim_cp) # 0 to 1
