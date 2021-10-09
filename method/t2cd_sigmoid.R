@@ -22,6 +22,14 @@ t2cd_sigmoid = function(dat, t.max = 72, tau.range = c(10, 50),
   # use_scale: if true, scale time series  
   res1 = search_dtau_sigmoid(dat, t.max, tau.range, init.tau, deg, C, dflag = 'original',
                          seqby = seqby, resd.seqby = resd.seqby, use_scale = use_scale)
+  # increase C if change point not in candidate range
+  multiplier = 2
+  while (is.na(res1$tau)){
+    C_new = multiplier*C
+    res1 = search_dtau_sigmoid(dat, t.max, tau.range, init.tau, deg, C_new, dflag = 'original',
+                               seqby = seqby, resd.seqby = resd.seqby, use_scale = use_scale)    
+    multiplier = multiplier + 1
+  }
   return(res1)
 }
 
