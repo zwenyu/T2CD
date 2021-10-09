@@ -26,6 +26,7 @@ tau_list = seq(15, 45, by = 5)
 ### plotting tau estimates of T2CD methods across all tau and d values tested
 
 # combining results
+simnum = 100
 tau_com = vector("list", length(tau_comnames))
 names(tau_com) = tau_comnames
 

@@ -22,10 +22,11 @@ bsc_ftd_sigmoid %>% group_by(expt, gel, inf) %>%
   summarise(mean = mean(d), sd = sd(d))
 
 # perform classfication by LDA
-mdck_acc_step = classify(mdck_ftd_step)
-bsc_acc_step = classify(bsc_ftd_step)
-mdck_acc_sigmoid = classify(mdck_ftd_sigmoid)
-bsc_acc_sigmoid = classify(bsc_ftd_sigmoid)
+classifer='qda'
+mdck_acc_step = classify(mdck_ftd_step, classifer)
+bsc_acc_step = classify(bsc_ftd_step, classifer)
+mdck_acc_sigmoid = classify(mdck_ftd_sigmoid, classifer)
+bsc_acc_sigmoid = classify(bsc_ftd_sigmoid, classifer)
 
 # summarizing accuracy in terms of mean and standard deviation
 acc_summary = function(mat_list){
