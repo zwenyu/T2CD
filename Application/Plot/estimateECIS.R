@@ -14,8 +14,6 @@ plot_univ = function(method, freq = 1, tau.range = c(10, 50), mvline = TRUE){
   
   d.range = c(0.5, 1.5)
   mat_f = cptresults[[freq]][[method]]
-  print(sum(mat_f[,'d']>=10)) # remove outlying case
-  mat_f = mat_f[mat_f[,'d']<10,]
   
   # plot of d by group
   mat00 = mat_f[mat_f[,'gel']==0 & mat_f[,'inf']==0, 'd' ]

@@ -155,7 +155,7 @@ search_dtau_step = function(dat, t.max = 72, tau.range = c(10, 50), deg = 3,
 
 # plot sequences and fitted lines
 plot.t2cd_step = function(results, tau.range = c(10, 50), deg = 3, 
-                           use_arf = TRUE, use_scale = TRUE){
+                           use_arf = TRUE, use_scale = TRUE, return_plot = TRUE){
   res = results$res
   tim = results$tim
   tau.idx = results$tau.idx
@@ -227,18 +227,20 @@ plot.t2cd_step = function(results, tau.range = c(10, 50), deg = 3,
   }
   
   # plotting
-  plot(tim, res, ylim = c(min(c(res, fit.vals)), max(c(res, fit.vals))), type = 'l', 
-       main = paste('Values fitted with d: ', round(opt_d,3), ' tau: ', round(opt_tau,3)),
-       xlab = 'Time (hour)', ylab = 'Resistance (ohm)')
-  if (is.na(opt_tau)){
-    lines(tim, fit.vals, col = "blue", lwd = 1)    
-  }else{
-    opt_tau.idx = which(tim == opt_tau)
-    lines(tim[1:opt_idx], fit.vals[1:opt_idx], col = "blue", lwd = 1)  
-    lines(tim[(opt_idx+1):N], fit.vals[(opt_idx+1):N], col = "green", lwd = 1)  
-    abline(v = opt_tau, lty = 2, col = "red")
+  if (return_plot){
+    plot(tim, res, ylim = c(min(c(res, fit.vals)), max(c(res, fit.vals))), type = 'l', 
+         main = paste('Values fitted with d: ', round(opt_d,3), ' tau: ', round(opt_tau,3)),
+         xlab = 'Time (hour)', ylab = 'Resistance (ohm)')
+    if (is.na(opt_tau)){
+      lines(tim, fit.vals, col = "blue", lwd = 1)    
+    }else{
+      opt_tau.idx = which(tim == opt_tau)
+      lines(tim[1:opt_idx], fit.vals[1:opt_idx], col = "blue", lwd = 1)  
+      lines(tim[(opt_idx+1):N], fit.vals[(opt_idx+1):N], col = "green", lwd = 1)  
+      abline(v = opt_tau, lty = 2, col = "red")
+    }
+    abline(v = tau.range, lty = 1, col = "red")    
   }
-  abline(v = tau.range, lty = 1, col = "red")
   
   return(list(fit.vals1 = fit.vals[1:opt_idx], fit.vals2 = fit.vals[(opt_idx+1):N],
               opt_idx = opt_idx, N = N,

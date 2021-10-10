@@ -201,14 +201,14 @@ search_dtau_sigmoid = function(dat, t.max = 72, tau.range = c(10, 50),
   opt_taurange2[is.na(opt_taurange2)] = tau.range[2]
   
   return(list(res = res, tim = tim, tau.idx = tau.idx,
-              d = opt_d, tau = opt_tau, 
+              d = opt_d, tau = opt_tau, idx = opt_tau.idx,
               tau.range1 = opt_taurange1, tau.range2 = opt_taurange2,
               param = opt_param, logL = opt_logL, dflag = dflag))
 }
 
 # plot sequences and fitted lines
 plot.t2cd_sigmoid = function(results, tau.range = c(10, 50), deg = 3, 
-                         seqby = 1, resd.seqby = 5){
+                         seqby = 1, resd.seqby = 5, return_plot = TRUE){
   res = results$res
   tim = results$tim
   tau.idx = results$tau.idx
@@ -270,37 +270,47 @@ plot.t2cd_sigmoid = function(results, tau.range = c(10, 50), deg = 3,
   }
   
   # plotting
-  plot(tim[1,], res[1,], ylim = c(min(c(res, fit.vals)), max(c(res, fit.vals))), type = 'l', 
-       main = paste('Values fitted with d: ', round(opt_d,3), ' tau: ', round(mean(opt_tau),3)),
-       xlab = 'Time (hour)', ylab = 'Resistance (ohm)')
-  if (p > 1){
-    for (k in 2:p){
-      lines(tim[k,], res[k,])
-    }
-  }
-  if (is.na(opt_tau[1])){
-    lines(tim[1,], fit.vals[1,], col = "blue", lwd = 1)    
-  }else{
-    opt_tau.idx = which(tim[1,] == opt_tau[1])
-    lines(tim[1,1:opt_tau.idx], fit.vals[1,1:opt_tau.idx], col = "blue", lwd = 1)  
-    lines(tim[1,(opt_tau.idx):ncol(fit.vals)], fit.vals[1,(opt_tau.idx):ncol(fit.vals)], col = "green", lwd = 1)  
-    abline(v = opt_tau[1], lty = 2, col = "red")
-  }
-  if (p > 1){
-    for (k in 2:p){
-      if (is.na(opt_tau[k])){
-        lines(tim[k,], fit.vals[k,], col = "blue", lwd = 1)    
-      }else{
-        opt_tau.idx = which(tim[k,] == opt_tau[k])
-        lines(tim[k,1:opt_tau.idx], fit.vals[k,1:opt_tau.idx], col = "blue", lwd = 1)  
-        lines(tim[k,(opt_tau.idx):ncol(fit.vals)], fit.vals[k,(opt_tau.idx):ncol(fit.vals)], col = "green", lwd = 1)  
-        abline(v = opt_tau[k], lty = 2, col = "red")
+  if (return_plot){
+    plot(tim[1,], res[1,], ylim = c(min(c(res, fit.vals)), max(c(res, fit.vals))), type = 'l', 
+         main = paste('Values fitted with d: ', round(opt_d,3), ' tau: ', round(mean(opt_tau),3)),
+         xlab = 'Time (hour)', ylab = 'Resistance (ohm)')
+    if (p > 1){
+      for (k in 2:p){
+        lines(tim[k,], res[k,])
       }
     }
+    if (is.na(opt_tau[1])){
+      lines(tim[1,], fit.vals[1,], col = "blue", lwd = 1)    
+    }else{
+      opt_tau.idx = which(tim[1,] == opt_tau[1])
+      lines(tim[1,1:opt_tau.idx], fit.vals[1,1:opt_tau.idx], col = "blue", lwd = 1)  
+      lines(tim[1,(opt_tau.idx):ncol(fit.vals)], fit.vals[1,(opt_tau.idx):ncol(fit.vals)], col = "green", lwd = 1)  
+      abline(v = opt_tau[1], lty = 2, col = "red")
+    }
+    if (p > 1){
+      for (k in 2:p){
+        if (is.na(opt_tau[k])){
+          lines(tim[k,], fit.vals[k,], col = "blue", lwd = 1)    
+        }else{
+          opt_tau.idx = which(tim[k,] == opt_tau[k])
+          lines(tim[k,1:opt_tau.idx], fit.vals[k,1:opt_tau.idx], col = "blue", lwd = 1)  
+          lines(tim[k,(opt_tau.idx):ncol(fit.vals)], fit.vals[k,(opt_tau.idx):ncol(fit.vals)], col = "green", lwd = 1)  
+          abline(v = opt_tau[k], lty = 2, col = "red")
+        }
+      }
+    }
+    abline(v = tau.range, lty = 1, col = "red")    
   }
-  abline(v = tau.range, lty = 1, col = "red")
   
-  return(list(fit.vals = fit.vals, 
-              var.resd1 = var.resd1*attributes(res_mean)$'scaled:scale'^2,
-              wt = wt))
+  if (p ==1){
+    opt_tau.idx = results$idx
+    return(list(fit.vals = fit.vals, 
+                fit.vals1 = fit.vals[1,1:opt_tau.idx], fit.vals2 = fit.vals[1,(opt_tau.idx+1):ncol(fit.vals)],
+                var.resd1 = var.resd1*attributes(res_mean)$'scaled:scale'^2,
+                wt = wt))     
+  }else{
+    return(list(fit.vals = fit.vals, 
+                var.resd1 = var.resd1*attributes(res_mean)$'scaled:scale'^2,
+                wt = wt))    
+  }
 }
