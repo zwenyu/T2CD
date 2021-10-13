@@ -20,15 +20,19 @@ boot_k = function(k, results, plot_results, methodname){
   
   samp = bootstrap_sample(results, plot_results, seed = k)
   
-  if (methodname=='step'){
-    res = t2cd_step(samp, use_arf = F)    
-  }else if (methodname=='sigmoid'){
-    res = t2cd_sigmoid(list(res=matrix(samp$res,1), tim=matrix(samp$tim,1)))
+  if (all(is.finite(unlist(samp)))){
+    if (methodname=='step'){
+      res = t2cd_step(samp, use_arf = F)    
+    }else if (methodname=='sigmoid'){
+      res = t2cd_sigmoid(list(res=matrix(samp$res,1), tim=matrix(samp$tim,1)))
+    }
+    tau = res$tau
+    d = res$d    
+  }else{
+    tau = d = NA
   }
-  tau_step = res$tau
-  d_step = res$d
-  
-  return(list(tau=tau_step, d=d_step))
+
+  return(list(tau=tau, d=d))
 }
 
 all_cptresults_step = list()

@@ -151,3 +151,27 @@ ggplot(d_methods_error, aes(x = tau, y = median, shape = method)) +
   scale_fill_manual(values=colmap)
 dev.off()
 
+### error in tau estimation for T2CD methods
+
+# combining results
+simnum = 100
+tau_error = vector("list", length(tau_comnames))
+names(tau_error) = tau_comnames
+
+for (i in 1:simnum){
+  for (m in tau_comnames){
+    tau_error[[m]] = rbind(tau_error[[m]], 
+                         -1*t(t(cptresults[[i]][[m]])-tau_list))
+  }
+}
+for (m in tau_comnames){
+  colnames(tau_error[[m]]) = tau_list
+}
+
+tau_step_error = melt(tau_error$tau_step)
+tau_sigmoid_error = melt(tau_error$tau_sigmoid)
+colnames(tau_step_error) = colnames(tau_sigmoid_error) =
+  c('d', 'tau', 'error')
+
+tau_step_error %>% group_by(d) %>% dplyr::summarize(Mean = median(error))
+tau_sigmoid_error %>% group_by(d) %>% dplyr::summarize(Mean = median(error))

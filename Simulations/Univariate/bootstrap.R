@@ -11,7 +11,7 @@ truetau_list = tau_list
 
 # small d: -0.45
 # large d: 1.35
-sim_ij = sim.simple(tau.percent=taupercent_list[3], d = 1.35, 
+sim_ij = sim.simple(tau.percent=taupercent_list[3], d = -0.45, 
                     phip = 0, piq = 0,
                     hetero1 = 'TRUE', regime1 = 'gp',
                     seed = 1)
@@ -42,13 +42,13 @@ boot_k = function(k){
 
 cptresults = parLapply(cl, 1:num_boot, boot_k)
 
-save.image('./Simulations/Univariate/larged_boot.RData')
+save.image('./Simulations/Univariate/smalld_boot.RData')
 stopCluster(cl)
 
 # small d
 # num_boot = 500
 # load("./Simulations/Univariate/smalld_boot.RData")
-# results$d # -0.4997202, true -0.45
+# results$d # -0.5321728, true -0.45
 # results$tau # 24.8926, true 25
 # # CI
 # tau = c()
@@ -57,20 +57,20 @@ stopCluster(cl)
 #   tau = c(tau, cptresults[[i]]$tau)
 #   d = c(d, cptresults[[i]]$d)
 # }
-# quantile(d, probs=c(0.05,0.95)) # -0.4998338 -0.4284260
-# quantile(tau, probs=c(0.05,0.95)) # 24.55847 28.06683
+# quantile(d, probs=c(0.05,0.95)) # -0.634181 -0.452950 
+# quantile(tau, probs=c(0.05,0.95)) # 24.55847 28.23389
 
 # large d
-# num_boot = 500
-# load("./Simulations/Univariate/larged_boot.RData")
-# results$d # 1.27494, true 1.35
-# results$tau # 31.40811, true 25
-# # CI
-# tau = c()
-# d = c()
-# for (i in 1:num_boot){
-#   tau = c(tau, cptresults[[i]]$tau)
-#   d = c(d, cptresults[[i]]$d)
-# }
-# quantile(d, probs=c(0.05,0.95)) # 1.168289 1.359963
-# quantile(tau, probs=c(0.05,0.95)) # 23.87351 48.44869
+num_boot = 500
+load("./Simulations/Univariate/larged_boot.RData")
+results$d # 1.27494, true 1.35
+results$tau # 31.40811, true 25
+# CI
+tau = c()
+d = c()
+for (i in 1:num_boot){
+  tau = c(tau, cptresults[[i]]$tau)
+  d = c(d, cptresults[[i]]$d)
+}
+quantile(d, probs=c(0.05,0.95)) # 1.16829 1.36128 
+quantile(tau, probs=c(0.05,0.95)) # 23.87351 48.44869
