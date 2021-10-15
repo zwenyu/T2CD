@@ -9,7 +9,7 @@ dat.info = list(gel=gel, inf=inf, nor=nor, null=null, wou=wou)
 num_boot = 500
 
 # Calculate the number of cores
-no_cores = 6
+no_cores = 12
 # Initiate cluster
 cl = makeCluster(no_cores, type = 'FORK')
 # each iteration of function output as a list entry

@@ -9,7 +9,7 @@ dat.info = list(gel=gel, inf=inf, nor=nor, null=null, wou=wou)
 num_boot = 500
 
 # Calculate the number of cores
-no_cores = 6
+no_cores = 12
 # Initiate cluster
 cl = makeCluster(no_cores, type = 'FORK')
 # each iteration of function output as a list entry
@@ -20,17 +20,13 @@ boot_k = function(k, results, plot_results, methodname){
   
   samp = bootstrap_sample(results, plot_results, seed = k)
   
-  if (all(is.finite(unlist(samp)))){
-    if (methodname=='step'){
-      res = t2cd_step(samp, use_arf = F)    
-    }else if (methodname=='sigmoid'){
-      res = t2cd_sigmoid(list(res=matrix(samp$res,1), tim=matrix(samp$tim,1)))
-    }
-    tau = res$tau
-    d = res$d    
-  }else{
-    tau = d = NA
+  if (methodname=='step'){
+    res = t2cd_step(samp, use_arf = F)    
+  }else if (methodname=='sigmoid'){
+    res = t2cd_sigmoid(list(res=matrix(samp$res,1), tim=matrix(samp$tim,1)))
   }
+  tau = res$tau
+  d = res$d    
 
   return(list(tau=tau, d=d))
 }

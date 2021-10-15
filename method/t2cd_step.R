@@ -80,64 +80,71 @@ search_dtau_step = function(dat, t.max = 72, tau.range = c(10, 50), deg = 3,
     t.1 = tim[1:tau_j]
     n.1 = length(x.1)
     
-    fit1 = refitWLS(t.1, x.1, deg = deg, seqby = seqby, resd.seqby = resd.seqby)
-    resd1.1 = x.1 - fit1$fit.vals
-    var.resd1.1 = fit1$var.resd
-    ll.1 = sum(dnorm(resd1.1, log = TRUE, sd = sqrt(var.resd1.1)))
-
-    # optimize for ARFIMA
-    if (dflag == 'original'){
-      x.2 = res_mean[(tau_j+1):N]
+    fit1 = tryCatch(refitWLS(t.1, x.1, deg = deg, seqby = seqby, resd.seqby = resd.seqby),
+                    error = function(e) {return(NA)})
+    if (any(is.na(fit1))){
+      M = c(M, -Inf)
+      d = c(d, NA)
+      m = c(m, NA)
     }else{
-      x.2 = diff(res_mean[(tau_j):N], 1)
-    }
-    # helper functions for loglikelihood
-    negloglik = function(param){
-      m = param[1]
-      dfrac = param[2]
+      resd1.1 = x.1 - fit1$fit.vals
+      var.resd1.1 = fit1$var.resd
+      ll.1 = sum(dnorm(resd1.1, log = TRUE, sd = sqrt(var.resd1.1)))
       
-      diff_p = c(diffseries_keepmean(matrix(x.2-m, ncol = 1), dfrac))
-      
-      neglogL = sum(diff_p^2)
-      
-      return(neglogL)
-    }
-    loglik = function(param){
-      m = param[1]
-      dfrac = param[2]
-      
-      diff_p = c(diffseries_keepmean(matrix(x.2-m, ncol = 1), dfrac))
-      
-      logL = sum(dnorm(diff_p, log = TRUE, sd = sd(diff_p)))
-      
-      return(logL)
-    }
-    
-    # optimizing
-    if (use_arf){
+      # optimize for ARFIMA
       if (dflag == 'original'){
-        arf = arfima::arfima(x.2)
-        d = c(d, arf$modes[[1]]$dfrac)
+        x.2 = res_mean[(tau_j+1):N]
       }else{
-        arf = arfima::arfima(x.2)
-        d = c(d, arf$modes[[1]]$dfrac + 1)
+        x.2 = diff(res_mean[(tau_j):N], 1)
       }
-      m = c(m, arf$models[[1]]$muHat)
-      n.2 = length(x.2)
-      ll.2 = arf$modes[[1]]$loglik - (n.2/2)*log(2*pi) - n.2/2
-    }else{
-      optim.2 = optim(par = c(mean(x.2), 0),
-                      fn = negloglik, method = "BFGS")
-      if (dflag == 'original'){
-        d = c(d, optim.2$par[2])
+      # helper functions for loglikelihood
+      negloglik = function(param){
+        m = param[1]
+        dfrac = param[2]
+        
+        diff_p = c(diffseries_keepmean(matrix(x.2-m, ncol = 1), dfrac))
+        
+        neglogL = sum(diff_p^2)
+        
+        return(neglogL)
+      }
+      loglik = function(param){
+        m = param[1]
+        dfrac = param[2]
+        
+        diff_p = c(diffseries_keepmean(matrix(x.2-m, ncol = 1), dfrac))
+        
+        logL = sum(dnorm(diff_p, log = TRUE, sd = sd(diff_p)))
+        
+        return(logL)
+      }
+      
+      # optimizing
+      if (use_arf){
+        if (dflag == 'original'){
+          arf = arfima::arfima(x.2)
+          d = c(d, arf$modes[[1]]$dfrac)
+        }else{
+          arf = arfima::arfima(x.2)
+          d = c(d, arf$modes[[1]]$dfrac + 1)
+        }
+        m = c(m, arf$models[[1]]$muHat)
+        n.2 = length(x.2)
+        ll.2 = arf$modes[[1]]$loglik - (n.2/2)*log(2*pi) - n.2/2
       }else{
-        d = c(d, optim.2$par[2] + 1)
+        optim.2 = optim(par = c(mean(x.2), 0),
+                        fn = negloglik, method = "BFGS")
+        if (dflag == 'original'){
+          d = c(d, optim.2$par[2])
+        }else{
+          d = c(d, optim.2$par[2] + 1)
+        }
+        m = c(m, optim.2$par[1])
+        ll.2 = loglik(optim.2$par)
       }
-      m = c(m, optim.2$par[1])
-      ll.2 = loglik(optim.2$par)
+      
+      M = c(M, ll.1 + ll.2)
     }
-
-    M = c(M, ll.1 + ll.2)
   }
   
   # tau and d at maximum log-likelihood
