@@ -80,13 +80,8 @@ search_dtau_step = function(dat, t.max = 72, tau.range = c(10, 50), deg = 3,
     t.1 = tim[1:tau_j]
     n.1 = length(x.1)
     
-    fit1 = tryCatch(refitWLS(t.1, x.1, deg = deg, seqby = seqby, resd.seqby = resd.seqby),
-                    error = function(e) {return(NA)})
-    if (any(is.na(fit1))){
-      M = c(M, -Inf)
-      d = c(d, NA)
-      m = c(m, NA)
-    }else{
+    fit = function(){
+      fit1 = refitWLS(t.1, x.1, deg = deg, seqby = seqby, resd.seqby = resd.seqby)  
       resd1.1 = x.1 - fit1$fit.vals
       var.resd1.1 = fit1$var.resd
       ll.1 = sum(dnorm(resd1.1, log = TRUE, sd = sqrt(var.resd1.1)))
@@ -123,27 +118,38 @@ search_dtau_step = function(dat, t.max = 72, tau.range = c(10, 50), deg = 3,
       if (use_arf){
         if (dflag == 'original'){
           arf = arfima::arfima(x.2)
-          d = c(d, arf$modes[[1]]$dfrac)
+          fit_d = arf$modes[[1]]$dfrac
         }else{
           arf = arfima::arfima(x.2)
-          d = c(d, arf$modes[[1]]$dfrac + 1)
+          fit_d = arf$modes[[1]]$dfrac + 1
         }
-        m = c(m, arf$models[[1]]$muHat)
+        fit_m = arf$models[[1]]$muHat
         n.2 = length(x.2)
         ll.2 = arf$modes[[1]]$loglik - (n.2/2)*log(2*pi) - n.2/2
       }else{
         optim.2 = optim(par = c(mean(x.2), 0),
                         fn = negloglik, method = "BFGS")
         if (dflag == 'original'){
-          d = c(d, optim.2$par[2])
+          fit_d = optim.2$par[2]
         }else{
-          d = c(d, optim.2$par[2] + 1)
+          fit_d = optim.2$par[2] + 1
         }
-        m = c(m, optim.2$par[1])
+        fit_m = optim.2$par[1]
         ll.2 = loglik(optim.2$par)
       }
-      
-      M = c(M, ll.1 + ll.2)
+      return(list(fit_M=ll.1 + ll.2,fit_d=fit_d,fit_m=fit_m))
+    }
+    
+    fit_res = tryCatch(fit(),
+                    error = function(e) {return(NA)})
+    if (any(is.na(fit_res))){
+      M = c(M, -Inf)
+      d = c(d, NA)
+      m = c(m, NA)
+    }else{
+      M = c(M, fit_res$fit_M)
+      d = c(d, fit_res$fit_d)
+      m = c(m, fit_res$fit_m)      
     }
   }
   
