@@ -51,7 +51,7 @@ for (x in 1:4){
         plot_results_step = plot.t2cd_step(res_step, use_arf = F, return_plot = FALSE)
         cptresults_step = parLapply(cl, 1:num_boot, boot_k, 
                                     res_step, plot_results_step, 'step')
-        cptresults_step = c(list(tau=res_step$tau, d=res_step$d, expt=x, freq=f, gel=g, inf=i, m=m), 
+        cptresults_step = c(list(list(tau=res_step$tau, d=res_step$d, expt=x, freq=f, gel=g, inf=i, m=m)), 
                             cptresults_step)
         
         # weighted method           
