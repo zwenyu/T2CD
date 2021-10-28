@@ -255,13 +255,13 @@ plot.t2cd_step = function(results, tau.range = c(10, 50), deg = 3,
     abline(v = tau.range, lty = 1, col = "red")    
   }
   
-  return(list(fit.vals1 = fit.vals[1:opt_idx], fit.vals2 = fit.vals[(opt_idx+1):N],
-              opt_idx = opt_idx, N = N,
-              var.resd1 = var.resd1))
+  return(list(fit.vals1 = mu[1:opt_idx], fit.vals2 = mu[(opt_idx+1):N],
+              opt_idx = opt_idx, N = N, scaling = attributes(res_mean)$'scaled:scale',
+              var.resd1 = fit1$var.resd))
 }
 
 # parametric bootstrap using outputs from t2cd_step and plot.t2cd_step
-bootstrap_sample = function(results, plot_results, seed = 0){
+bootstrap_sample_step = function(results, plot_results, seed = 0){
   
   set.seed(seed)
   res = results$res
@@ -270,18 +270,20 @@ bootstrap_sample = function(results, plot_results, seed = 0){
   opt_idx = results$idx
   
   # regime 1
-  fit.vals1 = plot_results$fit.vals1
-  var.resd1 = plot_results$var.resd1
+  fit.vals1 = plot_results$fit.vals1*plot_results$scaling
+  var.resd1 = plot_results$var.resd1*plot_results$scaling^2
   noise1 = rnorm(opt_idx, 0, sqrt(var.resd1))
   
   # regime 2
   opt_d = results$d
-  fit.vals2 = plot_results$fit.vals2
-  sd.resd2 = sd(res[(opt_idx+1):N]-fit.vals2)
+  m = results$m
+  res_mean = scale(res, center = F) # scaling
+  diff_p = c(diffseries_keepmean(matrix(res_mean[(opt_idx+1):N]-m, ncol = 1), opt_d))
+  sd.resd2 = sqrt(mean(diff_p^2))
   sim = sim.fi(N-opt_idx, opt_d, sd.resd2)  
   seq_fi = sim$s
   
-  samp = c(fit.vals1 + noise1, seq_fi + fit.vals1[opt_idx])
+  samp = c(fit.vals1 + noise1, (seq_fi + m)*plot_results$scaling)
   
   return(list(res=matrix(samp, nrow=1), tim=tim))  
 }

@@ -201,7 +201,7 @@ search_dtau_sigmoid = function(dat, t.max = 72, tau.range = c(10, 50),
   opt_taurange2[is.na(opt_taurange2)] = tau.range[2]
   
   return(list(res = res, tim = tim, tau.idx = tau.idx,
-              d = opt_d, tau = opt_tau, idx = opt_tau.idx,
+              d = opt_d, tau = opt_tau, m = opt_param[3], idx = opt_tau.idx,
               tau.range1 = opt_taurange1, tau.range2 = opt_taurange2,
               param = opt_param, logL = opt_logL, dflag = dflag))
 }
@@ -305,12 +305,40 @@ plot.t2cd_sigmoid = function(results, tau.range = c(10, 50), deg = 3,
   if (p ==1){
     opt_tau.idx = results$idx
     return(list(fit.vals = fit.vals, 
-                fit.vals1 = fit.vals[1,1:opt_tau.idx], fit.vals2 = fit.vals[1,(opt_tau.idx+1):ncol(fit.vals)],
-                var.resd1 = var.resd1*attributes(res_mean)$'scaled:scale'^2,
-                wt = wt))     
+                fit.vals1 = fit1, fit.vals2 = mu.2,
+                var.resd1 = var.resd1,
+                wt = wt, scaling = attributes(res_mean)$'scaled:scale'))     
   }else{
     return(list(fit.vals = fit.vals, 
                 var.resd1 = var.resd1*attributes(res_mean)$'scaled:scale'^2,
-                wt = wt))    
+                wt = wt, scaling = attributes(res_mean)$'scaled:scale'))    
   }
+}
+
+# parametric bootstrap using outputs from t2cd_step and plot.t2cd_step
+bootstrap_sample_sigmoid = function(results, plot_results, seed = 0){
+  
+  set.seed(seed)
+  res = results$res
+  tim = results$tim
+  N = length(res)
+  
+  # regime 1
+  fit.vals1 = plot_results$fit.vals1*plot_results$scaling
+  var.resd1 = plot_results$var.resd1*plot_results$scaling^2
+  noise1 = rnorm(N, 0, sqrt(var.resd1))
+  
+  # regime 2
+  opt_d = results$d
+  m = results$m
+  wt = plot_results$wt
+  x.2 = t(scale(t(res), center = F)) # scaling
+  diff_p = t(diffseries_keepmean(t(wt*(x.2-m)), opt_d))
+  sd.resd2 = sqrt(rowSums(wt*diff_p^2)/rowSums(wt))
+  sim = sim.fi(N, opt_d, sd.resd2)
+  seq_fi = sim$s 
+  
+  samp = c((1-wt)*(fit.vals1 + noise1) + wt*(seq_fi + m)*plot_results$scaling)
+  
+  return(list(res=matrix(samp, nrow=1), tim=tim))  
 }

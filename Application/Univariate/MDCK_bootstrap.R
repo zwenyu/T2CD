@@ -18,11 +18,11 @@ cl = makeCluster(no_cores, type = 'FORK')
 # iterate through experiments, frequency, gel and inf/nor
 boot_k = function(k, results, plot_results, methodname){
   
-  samp = bootstrap_sample(results, plot_results, seed = k)
-  
   if (methodname=='step'){
+    samp = bootstrap_sample_step(results, plot_results, seed = k)
     res = t2cd_step(samp, use_arf = F)    
   }else if (methodname=='sigmoid'){
+    samp = bootstrap_sample_sigmoid(results, plot_results, seed = k)
     res = t2cd_sigmoid(list(res=matrix(samp$res,1), tim=matrix(samp$tim,1)))
   }
   tau = res$tau
@@ -50,7 +50,7 @@ for (x in 1:4){
         plot_results_step = plot.t2cd_step(res_step, use_arf = F, return_plot = FALSE)
         cptresults_step = parLapply(cl, 1:num_boot, boot_k, 
                                     res_step, plot_results_step, 'step')
-        cptresults_step = c(list(tau=res_step$tau, d=res_step$d, expt=x, freq=f, gel=g, inf=i, m=m), 
+        cptresults_step = c(list(list(tau=res_step$tau, d=res_step$d, expt=x, freq=f, gel=g, inf=i, m=m)), 
                             cptresults_step)
         
         # weighted method           
@@ -77,3 +77,30 @@ stopCluster(cl)
 # which are lists of length = number of series in dataset
 # each element is a list of length = 1 + num_boot
 # where first result is fit on original data, and next num_boot are on bootstrapped samples
+
+# for (res in all_cptresults_step){
+#   x = res[[1]]$expt
+#   g = res[[1]]$gel
+#   i = res[[1]]$inf
+#   print(paste('x',x,'g',g,'i',i))
+#   print(res[[1]]$d) # d
+#   boot = res[2:501]
+#   df_boot = data.frame(matrix(unlist(boot), nrow=length(boot), byrow=TRUE))
+#   colnames(df_boot) = c('tau', 'd')
+#   print(quantile(df_boot$d, probs=c(0.05,0.95)))
+# }
+# 
+# for (res in all_cptresults_sigmoid){
+#   x = res[[1]]$expt
+#   g = res[[1]]$gel
+#   i = res[[1]]$inf
+#   print(paste('x',x,'g',g,'i',i))
+#   print(res[[1]]$d) # d
+#   boot = res[2:501]
+#   df_boot = data.frame(matrix(unlist(boot), nrow=length(boot), byrow=TRUE))
+#   colnames(df_boot) = c('tau', 'd')
+#   print(quantile(df_boot$d, probs=c(0.05,0.95)))
+# }
+
+
+
