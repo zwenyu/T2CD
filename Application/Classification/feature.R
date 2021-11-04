@@ -30,7 +30,6 @@ extractFeat = function(method, cellline = c('mdck', 'bsc'), freq = 1){
     load("Cornell_MDCK_M_hominis_runs.RData")
   }else if (cellline == 'bsc'){
     load("Cornell_BSC_M_hominis_runs.RData")
-    dat.com = bsc
   }
   dat.info = list(gel=gel, inf=inf, nor=nor, null=null, wou=wou)
   t.max = 72
@@ -147,10 +146,10 @@ classify1 = function(mat_ftd, testexpt,
 }
 
 # classification with each expt taking turns being the test set
-classify = function(mat_ftd){
+classify = function(mat_ftd, classifier){
   lda_mat = qda_mat = rda_mat = matrix(NA, 0, 10)
   for (x in 1:4){
-    lda1 = classify1(mat_ftd, x, 'lda')
+    lda1 = classify1(mat_ftd, x, classifier)
     lda_mat = rbind(lda_mat, lda1)
   }
   

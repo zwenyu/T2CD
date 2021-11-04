@@ -1,6 +1,8 @@
 # plot tau and d estimates 
 # set working directory as T2CD
 
+require(ggplot2)
+
 # plot for MDCK cell line
 load("./Application/Univariate/mdck.RData")
 load("./Application/Multivariate/mdck.mv.RData")
@@ -43,7 +45,7 @@ plot_univ = function(method, freq = 1, tau.range = c(10, 50), mvline = TRUE){
   mat_dt$Infection = factor(ifelse(mat_dt$inf==1, 'Yes', 'No'))
   mat_dt$serum = factor(ifelse(mat_dt$gel==1, 'Gel', 'BSA'))
   plot_scatter = ggplot(mat_dt, aes(x=tau, y=d, shape=expt, color=group)) + geom_point() +
-    scale_color_manual(values = c('#FF66CC', '#0099FF', '#CC0033', '#0000CC')) +
+    scale_fill_grey() + scale_color_grey() + 
     theme_bw(base_size = 14)
   
   # scatter, separated by experiment and serum type
@@ -57,15 +59,21 @@ plot_univ = function(method, freq = 1, tau.range = c(10, 50), mvline = TRUE){
     mat_dt.mv$serum = factor(ifelse(mat_dt.mv$gel==1, 'Gel', 'BSA'))
     plot_grid = ggplot(mat_dt, aes(x=tau, y=d, shape=Infection, color=Infection)) + geom_point() +
       geom_hline(data = mat_dt.mv, aes(yintercept=d, linetype=Infection, color=Infection), alpha = 0.5) +
-      facet_grid(serum~expt) + scale_color_manual(values = c("#3333CC", '#FF3333')) +
+      facet_grid(serum~expt) + 
       scale_linetype_manual(values = c("solid", "longdash")) + 
       scale_shape_manual(values = c(15, 19)) + 
-      theme_bw(base_size = 14) + labs(x=expression(tau))
+      scale_fill_grey() + scale_color_grey() + 
+      theme_bw(base_size = 14) + labs(x=expression(tau)) +
+      theme(panel.grid.major = element_blank(),
+            panel.grid.minor = element_blank())
   }else{
     plot_grid = ggplot(mat_dt, aes(x=tau, y=d, shape=Infection, color=Infection)) + geom_point() +
-      facet_grid(serum~expt) + scale_color_manual(values = c("#3333CC", '#FF3333')) +
+      facet_grid(serum~expt) +
       scale_shape_manual(values = c(15, 19)) + 
-      theme_bw(base_size = 14) + labs(x=expression(tau))
+      scale_fill_grey() + scale_color_grey() + 
+      theme_bw(base_size = 14) + labs(x=expression(tau)) +
+      theme(panel.grid.major = element_blank(),
+            panel.grid.minor = element_blank())
   }
 
   return(list(plot_d = plot_d, plot_tau = plot_tau, 
@@ -75,10 +83,14 @@ plot_univ = function(method, freq = 1, tau.range = c(10, 50), mvline = TRUE){
 
 # plotting tau and d estimates for T2CD_step
 plot_step = plot_univ(method = 'mat_step', mvline=TRUE)
+cairo_ps(file = './Application/Plot/Figures/mdck_step.eps', width = 6, height = 3, pointsize = 12)
 plot_step$plot_grid
+dev.off()
 
 # plotting tau and d estimates for T2CD_sigmoid
 plot_sigmoid = plot_univ(method = 'mat_sigmoid', mvline=TRUE)
+cairo_ps(file = './Application/Plot/Figures/mdck_sigmoid.eps', width = 6, height = 3, pointsize = 12)
 plot_sigmoid$plot_grid
+dev.off()
 
 

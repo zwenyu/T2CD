@@ -24,7 +24,7 @@ extractdata = function(dat.com, dat.info, expt, freq, gel, inf, nor, null=0, wou
 # noise allowed to have different variance for the two segments, regime 1 noise allowed to be heteroscedastic
 # if multivariate, assumes all p sequences change at same location tau+1 if only one tau.percent provided
 # if multivariate, observations are aligned
-sim.simple = function(Tend=70, N=400, tau.percent=0.2, d=0.1, phip=0, piq=0,
+sim.simple = function(Tend=70, N=420, tau.percent=0.2, d=0.1, phip=0, piq=0,
                       p=1, pcoeff=NA, deg=5, regime1 = c('poly', 'gp'),
                       sig1=2, sig2=0.5, hetero1=F, share_d=T, seed=0){
   # Tend: ending t
@@ -70,7 +70,7 @@ sim.simple = function(Tend=70, N=400, tau.percent=0.2, d=0.1, phip=0, piq=0,
      seq_reg1 = 10*gaussprocess(m = tau.idx1_i) 
     }
     if (phip>0 | piq>0){
-      sim = sim.arf(N-tau.idx1_i, d+i*0.1, phip, piq, sig2)    
+      sim = sim.arf(N-tau.idx1_i, d, phip, piq, sig2)    
       seq_arfima = sim$s
       armacoeff = list(ar = sim$phicoeff, ma = sim$picoeff)
     }else{
@@ -123,14 +123,9 @@ diffseries_keepmean = function(x, d, incre = F){
 
 ### helper functions
 
-# simulates univariate FI series; first difference is FI if d>0.5
-sim.fi = function(N, d, sig=1){
+# simulates univariate FI series
+sim.fi = function(N, eff.d, sig=1){
   noise = rnorm(N, sd = sig) # ordered from 1 to N
-  if (d > 0.5){
-    eff.d = d - 1
-  }else{
-    eff.d = d
-  }
   dn_coeff = sapply(1:N, function(k){return(choose(eff.d, k)*(-1)**(k+1))})
   trend = c(0)
   s = c(noise[1])
@@ -138,29 +133,22 @@ sim.fi = function(N, d, sig=1){
     s = c(s, sum(s[i:1]*dn_coeff[1:i]) + noise[i+1])
     trend = c(trend, sum(s[i:1]*dn_coeff[1:i]))
   }
-  # d>0.5, take cumulative sums to get the observed sequence
-  if (d > 0.5){
-    s = cumsum(s)
-    trend = s - noise
-  }
   return(list(s = s, trend = trend))
 }
 
 # simulates univariate ARFIMA series; first difference is ARFIMA if d>0.5
-sim.arf = function(N, d, phip, piq, sig=1){
+sim.arf = function(N, eff.d, phip, piq, sig=1){
   phicoeff = runif(phip)
   picoeff = runif(piq)
-  if (d > 0.5){
-    eff.d = d - 1
+  if (eff.d>=0.5){
+    dfrac = eff.d-1
+    dint = 1
   }else{
-    eff.d = d
+    dfrac = eff.d
+    dint = 0
   }
-  s = arfima::arfima.sim(N, model = list(phi = phicoeff, dfrac = eff.d, theta = picoeff),
-                 sigma2 = sig^2)
-  # d>0.5, take cumulative sums to get the observed sequence
-  if (d > 0.5){
-    s = cumsum(s)
-  }
+  s = arfima::arfima.sim(N, model = list(phi = phicoeff, dfrac = dfrac, dint = dint,
+                                         theta = picoeff), sigma2 = sig^2)
   return(list(s = s, phicoeff = phicoeff, picoeff = picoeff))
 }
 

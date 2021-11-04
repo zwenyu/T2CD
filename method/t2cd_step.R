@@ -25,14 +25,7 @@ t2cd_step = function(dat, t.max = 72, tau.range = c(10, 50), deg = 3,
   res1 = search_dtau_step(dat, t.max, tau.range, deg, dflag = 'original',
                            seqby = seqby, resd.seqby = resd.seqby,
                            use_arf = use_arf, use_scale = use_scale)
-  res2 = search_dtau_step(dat, t.max, tau.range, deg, dflag = 'fdiff',
-                           seqby = seqby, resd.seqby = resd.seqby,
-                           use_arf = use_arf, use_scale = use_scale)
-  if (res1$logL > res2$logL){
-    return(res1)
-  }else{
-    return(res2)
-  }
+  return(res1)
 }
 
 ### helper and plotting functions
@@ -87,67 +80,77 @@ search_dtau_step = function(dat, t.max = 72, tau.range = c(10, 50), deg = 3,
     t.1 = tim[1:tau_j]
     n.1 = length(x.1)
     
-    fit1 = refitWLS(t.1, x.1, deg = deg, seqby = seqby, resd.seqby = resd.seqby)
-    resd1.1 = x.1 - fit1$fit.vals
-    var.resd1.1 = fit1$var.resd
-    ll.1 = sum(dnorm(resd1.1, log = TRUE, sd = sqrt(var.resd1.1)))
-
-    # optimize for ARFIMA
-    if (dflag == 'original'){
-      x.2 = res_mean[(tau_j+1):N]
-    }else{
-      x.2 = diff(res_mean[(tau_j):N], 1)
-    }
-    # helper functions for loglikelihood
-    negloglik = function(param){
-      m = param[1]
-      dfrac = param[2]
-      if (dfrac<=-0.5 | dfrac>=0.5){
-        return(1e+10)
+    fit = function(){
+      fit1 = refitWLS(t.1, x.1, deg = deg, seqby = seqby, resd.seqby = resd.seqby)  
+      resd1.1 = x.1 - fit1$fit.vals
+      var.resd1.1 = fit1$var.resd
+      ll.1 = sum(dnorm(resd1.1, log = TRUE, sd = sqrt(var.resd1.1)))
+      
+      # optimize for ARFIMA
+      if (dflag == 'original'){
+        x.2 = res_mean[(tau_j+1):N]
+      }else{
+        x.2 = diff(res_mean[(tau_j):N], 1)
+      }
+      # helper functions for loglikelihood
+      negloglik = function(param){
+        m = param[1]
+        dfrac = param[2]
+        
+        diff_p = c(diffseries_keepmean(matrix(x.2-m, ncol = 1), dfrac))
+        
+        neglogL = sum(diff_p^2)
+        
+        return(neglogL)
+      }
+      loglik = function(param){
+        m = param[1]
+        dfrac = param[2]
+        
+        diff_p = c(diffseries_keepmean(matrix(x.2-m, ncol = 1), dfrac))
+        
+        logL = sum(dnorm(diff_p, log = TRUE, sd = sd(diff_p)))
+        
+        return(logL)
       }
       
-      diff_p = c(diffseries_keepmean(matrix(x.2-m, ncol = 1), dfrac))
-      
-      neglogL = sum(diff_p^2)
-      
-      return(neglogL)
-    }
-    loglik = function(param){
-      m = param[1]
-      dfrac = param[2]
-      
-      diff_p = c(diffseries_keepmean(matrix(x.2-m, ncol = 1), dfrac))
-      
-      logL = sum(dnorm(diff_p, log = TRUE, sd = sd(diff_p)))
-      
-      return(logL)
+      # optimizing
+      if (use_arf){
+        if (dflag == 'original'){
+          arf = arfima::arfima(x.2)
+          fit_d = arf$modes[[1]]$dfrac
+        }else{
+          arf = arfima::arfima(x.2)
+          fit_d = arf$modes[[1]]$dfrac + 1
+        }
+        fit_m = arf$models[[1]]$muHat
+        n.2 = length(x.2)
+        ll.2 = arf$modes[[1]]$loglik - (n.2/2)*log(2*pi) - n.2/2
+      }else{
+        optim.2 = optim(par = c(mean(x.2), 0),
+                        fn = negloglik, method = "BFGS")
+        if (dflag == 'original'){
+          fit_d = optim.2$par[2]
+        }else{
+          fit_d = optim.2$par[2] + 1
+        }
+        fit_m = optim.2$par[1]
+        ll.2 = loglik(optim.2$par)
+      }
+      return(list(fit_M=ll.1 + ll.2,fit_d=fit_d,fit_m=fit_m))
     }
     
-    # optimizing
-    if (use_arf){
-      if (dflag == 'original'){
-        arf = arfima::arfima(x.2)
-        d = c(d, arf$modes[[1]]$dfrac)
-      }else{
-        arf = arfima::arfima(x.2)
-        d = c(d, arf$modes[[1]]$dfrac + 1)
-      }
-      m = c(m, arf$models[[1]]$muHat)
-      n.2 = length(x.2)
-      ll.2 = arf$modes[[1]]$loglik - (n.2/2)*log(2*pi) - n.2/2
+    fit_res = tryCatch(fit(),
+                    error = function(e) {return(NA)})
+    if (any(is.na(fit_res))){
+      M = c(M, -Inf)
+      d = c(d, NA)
+      m = c(m, NA)
     }else{
-      optim.2 = optim(par = c(mean(x.2), 0),
-                      fn = negloglik, method = "BFGS")
-      if (dflag == 'original'){
-        d = c(d, optim.2$par[2])
-      }else{
-        d = c(d, optim.2$par[2] + 1)
-      }
-      m = c(m, optim.2$par[1])
-      ll.2 = loglik(optim.2$par)
+      M = c(M, fit_res$fit_M)
+      d = c(d, fit_res$fit_d)
+      m = c(m, fit_res$fit_m)      
     }
-
-    M = c(M, ll.1 + ll.2)
   }
   
   # tau and d at maximum log-likelihood
@@ -165,7 +168,7 @@ search_dtau_step = function(dat, t.max = 72, tau.range = c(10, 50), deg = 3,
 
 # plot sequences and fitted lines
 plot.t2cd_step = function(results, tau.range = c(10, 50), deg = 3, 
-                           use_arf = TRUE, use_scale = TRUE){
+                           use_arf = TRUE, use_scale = TRUE, return_plot = TRUE){
   res = results$res
   tim = results$tim
   tau.idx = results$tau.idx
@@ -237,21 +240,50 @@ plot.t2cd_step = function(results, tau.range = c(10, 50), deg = 3,
   }
   
   # plotting
-  plot(tim, res, ylim = c(min(c(res, fit.vals)), max(c(res, fit.vals))), type = 'l', 
-       main = paste('Values fitted with d: ', round(opt_d,3), ' tau: ', round(opt_tau,3)),
-       xlab = 'Time (hour)', ylab = 'Resistance (ohm)')
-  if (is.na(opt_tau)){
-    lines(tim, fit.vals, col = "blue", lwd = 1)    
-  }else{
-    opt_tau.idx = which(tim == opt_tau)
-    lines(tim[1:opt_idx], fit.vals[1:opt_idx], col = "blue", lwd = 1)  
-    lines(tim[(opt_idx+1):N], fit.vals[(opt_idx+1):N], col = "green", lwd = 1)  
-    abline(v = opt_tau, lty = 2, col = "red")
+  if (return_plot){
+    plot(tim, res, ylim = c(min(c(res, fit.vals)), max(c(res, fit.vals))), type = 'l', 
+         main = paste('Values fitted with d: ', round(opt_d,3), ' tau: ', round(opt_tau,3)),
+         xlab = 'Time (hour)', ylab = 'Resistance (ohm)')
+    if (is.na(opt_tau)){
+      lines(tim, fit.vals, col = "blue", lwd = 1)    
+    }else{
+      opt_tau.idx = which(tim == opt_tau)
+      lines(tim[1:opt_idx], fit.vals[1:opt_idx], col = "blue", lwd = 1)  
+      lines(tim[(opt_idx+1):N], fit.vals[(opt_idx+1):N], col = "green", lwd = 1)  
+      abline(v = opt_tau, lty = 2, col = "red")
+    }
+    abline(v = tau.range, lty = 1, col = "red")    
   }
-  abline(v = tau.range, lty = 1, col = "red")
   
-  return(list(fit.vals1 = fit.vals[1:opt_idx], fit.vals2 = fit.vals[(opt_idx+1):N],
-              opt_idx = opt_idx, N = N,
-              var.resd1 = var.resd1))
+  return(list(fit.vals1 = mu[1:opt_idx], fit.vals2 = mu[(opt_idx+1):N],
+              opt_idx = opt_idx, N = N, scaling = attributes(res_mean)$'scaled:scale',
+              var.resd1 = fit1$var.resd))
 }
 
+# parametric bootstrap using outputs from t2cd_step and plot.t2cd_step
+bootstrap_sample_step = function(results, plot_results, seed = 0){
+  
+  set.seed(seed)
+  res = results$res
+  tim = results$tim
+  N = length(res)
+  opt_idx = results$idx
+  
+  # regime 1
+  fit.vals1 = plot_results$fit.vals1*plot_results$scaling
+  var.resd1 = plot_results$var.resd1*plot_results$scaling^2
+  noise1 = rnorm(opt_idx, 0, sqrt(var.resd1))
+  
+  # regime 2
+  opt_d = results$d
+  m = results$m
+  res_mean = scale(res, center = F) # scaling
+  diff_p = c(diffseries_keepmean(matrix(res_mean[(opt_idx+1):N]-m, ncol = 1), opt_d))
+  sd.resd2 = sqrt(mean(diff_p^2))
+  sim = sim.fi(N-opt_idx, opt_d, sd.resd2)  
+  seq_fi = sim$s
+  
+  samp = c(fit.vals1 + noise1, (seq_fi + m)*plot_results$scaling)
+  
+  return(list(res=matrix(samp, nrow=1), tim=tim))  
+}

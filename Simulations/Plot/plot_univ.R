@@ -26,6 +26,7 @@ tau_list = seq(15, 45, by = 5)
 ### plotting tau estimates of T2CD methods across all tau and d values tested
 
 # combining results
+simnum = 100
 tau_com = vector("list", length(tau_comnames))
 names(tau_com) = tau_comnames
 
@@ -73,6 +74,7 @@ p = ggplot(tau_stationary, aes(x = factor(tau), y = est, fill = factor(d))) +
   geom_abline(data = slopeline_tau_stationary, aes(slope = slope, intercept = intercept),
               linetype = 'dashed')
 p + labs(x = expression(paste("True ", tau)), y = expression(paste("Estimated ", tau)), fill = 'True d') + 
+  scale_fill_grey() + scale_color_grey() + 
   theme_bw(base_size = 20) + 
   theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 10),
         strip.text.x = element_text(size = 10))
@@ -86,6 +88,7 @@ p = ggplot(tau_nonstationary, aes(x = factor(tau), y = est, fill = factor(d))) +
   geom_abline(data = slopeline_tau_nonstationary, aes(slope = slope, intercept = intercept),
               linetype = 'dashed')
 p + labs(x = expression(paste("True ", tau)), y = expression(paste("Estimated ", tau)), fill = 'True d') + 
+  scale_fill_grey() + scale_color_grey() + 
   theme_bw(base_size = 20) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 10),
         strip.text.x = element_text(size = 10))
@@ -148,3 +151,27 @@ ggplot(d_methods_error, aes(x = tau, y = median, shape = method)) +
   scale_fill_manual(values=colmap)
 dev.off()
 
+### error in tau estimation for T2CD methods
+
+# combining results
+simnum = 100
+tau_error = vector("list", length(tau_comnames))
+names(tau_error) = tau_comnames
+
+for (i in 1:simnum){
+  for (m in tau_comnames){
+    tau_error[[m]] = rbind(tau_error[[m]], 
+                         -1*t(t(cptresults[[i]][[m]])-tau_list))
+  }
+}
+for (m in tau_comnames){
+  colnames(tau_error[[m]]) = tau_list
+}
+
+tau_step_error = melt(tau_error$tau_step)
+tau_sigmoid_error = melt(tau_error$tau_sigmoid)
+colnames(tau_step_error) = colnames(tau_sigmoid_error) =
+  c('d', 'tau', 'error')
+
+tau_step_error %>% group_by(d) %>% dplyr::summarize(Mean = median(error))
+tau_sigmoid_error %>% group_by(d) %>% dplyr::summarize(Mean = median(error))

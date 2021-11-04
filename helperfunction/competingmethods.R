@@ -55,9 +55,6 @@ ecp_d = function(dat, t.max = 72, tau.range = c(10, 50), dflag = 'diff'){
   negloglik = function(param){
     m = param[1:p]
     dfrac = param[p+1]
-    if (dfrac<=-0.5 | dfrac>=0.5){
-      return(1e+10)
-    }
     
     n.2 = rowSums(!is.na(x.2))
     diff_p = t(diffseries_keepmean(t(x.2-m), dfrac))
@@ -68,22 +65,11 @@ ecp_d = function(dat, t.max = 72, tau.range = c(10, 50), dflag = 'diff'){
     return(neglogL)
   }
   
-  # original
   reg2 = matrix(res[,(t.max+1):ncol(res)], nrow = nrow(res))
   x.2 = t(scale(t(reg2), center = F))
-  optim_params_orig = optim(par = c(rowMeans(x.2, na.rm = T), 0),
+  optim_params = optim(par = c(rowMeans(x.2, na.rm = T), 0),
                             fn = negloglik, method = "BFGS")
-  # diff
-  reg2 = matrix(res[,(t.max):ncol(res)], nrow = nrow(res))
-  reg2 = t(scale(t(reg2), center = F))
-  x.2 = matrix(reg2[, -1] - reg2[, -ncol(reg2)], nrow = p)
-  optim_params_diff = optim(par = c(rowMeans(x.2, na.rm = T), 0),
-                             fn = negloglik, method = "BFGS")
-  if (optim_params_orig$value < optim_params_diff$value){
-    d = optim_params_orig$par[p + 1]
-  }else{
-    d = optim_params_diff$par[p + 1] + 1  
-  }
+  d = optim_params$par[p + 1]
   
   return(list(idx = tau.idx, tau = tau, d = d))
 }
@@ -122,24 +108,14 @@ ecp_d.mv = function(dat, t.max = 72, tau.range = c(10, 50), dflag = 'diff'){
     idx[k] = res_k$idx
   }
   
-  if (mean(init.d) < 0.5){
-    dflag = 'original'
-    x.2 = t(scale(t(reg2), center = F))
-    init.d.2 = init.d
-  }else{
-    dflag = 'diff'
-    init.d.2 = init.d - 1    
-    reg2 = t(scale(t(reg2), center = F))
-    x.2 = reg2[, -1] - res[, -ncol(reg2)]/attributes(reg2)$`scaled:scale`
-  }
-  
+  dflag = 'original'
+  x.2 = t(scale(t(reg2), center = F))
+  init.d.2 = init.d
+
   # helper functions for loglikelihood
   negloglik = function(param){
     m = param[1:p]
     dfrac = param[p+1]
-    if (dfrac<=-0.5 | dfrac>=0.5){
-      return(1e+10)
-    }
     
     n.2 = rowSums(!is.na(x.2))
     diff_p = t(diffseries_keepmean(t(x.2-m), dfrac))
@@ -151,11 +127,7 @@ ecp_d.mv = function(dat, t.max = 72, tau.range = c(10, 50), dflag = 'diff'){
   }
   optim_params = optim(par = c(rowMeans(x.2, na.rm = T), mean(init.d.2)),
                        fn = negloglik, method = "BFGS")
-  if (dflag == 'original'){
-    d = optim_params$par[p + 1]
-  }else{
-    d = optim_params$par[p + 1] + 1  
-  }
+  d = optim_params$par[p + 1]
   
   return(list(tau = tau, d = d, univ_d = init.d))
 }
@@ -188,9 +160,6 @@ estd = function(dat, tau, t.max = 72){
   negloglik = function(param){
     m = param[1:p]
     dfrac = param[p+1]
-    if (dfrac<=-0.5 | dfrac>=0.5){
-      return(1e+10)
-    }
     
     n.2 = rowSums(!is.na(x.2))
     diff_p = t(diffseries_keepmean(t(x.2-m), dfrac))
@@ -201,23 +170,11 @@ estd = function(dat, tau, t.max = 72){
     return(neglogL)
   }
   
-  # original
   reg2 = matrix(res[,(t.max+1):ncol(res)], nrow = nrow(res))
   x.2 = t(scale(t(reg2), center = F))
-  optim_params_orig = optim(par = c(rowMeans(x.2, na.rm = T), 0),
+  optim_params = optim(par = c(rowMeans(x.2, na.rm = T), 0),
                             fn = negloglik, method = "BFGS")
-  # diff
-  reg2 = matrix(res[,(t.max):ncol(res)], nrow = nrow(res))
-  reg2 = t(scale(t(reg2), center = F))
-  x.2 = matrix(reg2[, -1] - reg2[, -ncol(reg2)], nrow = p)
-  optim_params_diff = optim(par = c(rowMeans(x.2, na.rm = T), 0),
-                             fn = negloglik, method = "BFGS")
-  if (optim_params_orig$value < optim_params_diff$value){
-    d = optim_params_orig$par[p + 1]
-  }else{
-    d = optim_params_diff$par[p + 1] + 1  
-  }
-  
+  d = optim_params$par[p + 1]
   return(list(d = d))
 }
 
@@ -253,23 +210,14 @@ estd.mv = function(dat, tau, t.max = 72){
     init.d[k] = res_k$d
   }
   
-  if (mean(init.d) < 0.5){
-    dflag = 'original'
-    x.2 = t(scale(t(reg2), center = F))
-    init.d.2 = init.d
-  }else{
-    dflag = 'diff'
-    reg2 = t(scale(t(reg2), center = F))
-    x.2 = reg2[, -1] - res[, -ncol(reg2)]/attributes(reg2)$`scaled:scale`
-    init.d.2 = init.d - 1
-  }
+  dflag = 'original'
+  x.2 = t(scale(t(reg2), center = F))
+  init.d.2 = init.d
+
   # helper functions for loglikelihood
   negloglik = function(param){
     m = param[1:p]
     dfrac = param[p+1]
-    if (dfrac<=-0.5 | dfrac>=0.5){
-      return(1e+10)
-    }
     
     n.2 = rowSums(!is.na(x.2))
     diff_p = t(diffseries_keepmean(t(x.2-m), dfrac))
@@ -281,11 +229,7 @@ estd.mv = function(dat, tau, t.max = 72){
   }
   optim_params = optim(par = c(rowMeans(x.2, na.rm = T), mean(init.d.2)),
                        fn = negloglik, method = "BFGS")
-  if (dflag == 'original'){
-    d = optim_params$par[p + 1]
-  }else{
-    d = optim_params$par[p + 1] + 1  
-  }
+  d = optim_params$par[p + 1]
   
   return(list(d = d, univ_d = init.d))
 }

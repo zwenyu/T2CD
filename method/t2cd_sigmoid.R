@@ -22,13 +22,15 @@ t2cd_sigmoid = function(dat, t.max = 72, tau.range = c(10, 50),
   # use_scale: if true, scale time series  
   res1 = search_dtau_sigmoid(dat, t.max, tau.range, init.tau, deg, C, dflag = 'original',
                          seqby = seqby, resd.seqby = resd.seqby, use_scale = use_scale)
-  res2 = search_dtau_sigmoid(dat, t.max, tau.range, init.tau, deg, C, dflag = 'fdiff',
-                         seqby = seqby, resd.seqby = resd.seqby, use_scale = use_scale)
-  if (res1$logL > res2$logL){
-    return(res1)
-  }else{
-    return(res2)
+  # increase C if change point not in candidate range
+  multiplier = 2
+  while (is.na(res1$tau)){
+    C_new = multiplier*C
+    res1 = search_dtau_sigmoid(dat, t.max, tau.range, init.tau, deg, C_new, dflag = 'original',
+                               seqby = seqby, resd.seqby = resd.seqby, use_scale = use_scale)    
+    multiplier = multiplier + 1
   }
+  return(res1)
 }
 
 ### helper and plotting functions
@@ -107,10 +109,7 @@ search_dtau_sigmoid = function(dat, t.max = 72, tau.range = c(10, 50),
     alpha1 = param[2]
     m = param[3]  
     dfrac = param[4]
-    if (dfrac<=-0.5 | dfrac>=0.5){
-      return(1e+10)
-    }
-
+    
     # weights
     wt_cp = sigmoid(alpha0+alpha1*tim_cp) # 0 to 1
     wt = cbind(matrix(rep(wt_cp[,1], tau.idx[1]-1), p, byrow = F),
@@ -137,9 +136,6 @@ search_dtau_sigmoid = function(dat, t.max = 72, tau.range = c(10, 50),
     alpha1 = param[2]
     m = param[3]  
     dfrac = param[4]
-    if (dfrac<=-0.5 | dfrac>=0.5){
-      return(1e+10)
-    }
     
     # weights
     wt_cp = sigmoid(alpha0+alpha1*tim_cp) # 0 to 1
@@ -205,14 +201,14 @@ search_dtau_sigmoid = function(dat, t.max = 72, tau.range = c(10, 50),
   opt_taurange2[is.na(opt_taurange2)] = tau.range[2]
   
   return(list(res = res, tim = tim, tau.idx = tau.idx,
-              d = opt_d, tau = opt_tau, 
+              d = opt_d, tau = opt_tau, m = opt_param[3], idx = opt_tau.idx,
               tau.range1 = opt_taurange1, tau.range2 = opt_taurange2,
               param = opt_param, logL = opt_logL, dflag = dflag))
 }
 
 # plot sequences and fitted lines
 plot.t2cd_sigmoid = function(results, tau.range = c(10, 50), deg = 3, 
-                         seqby = 1, resd.seqby = 5){
+                         seqby = 1, resd.seqby = 5, return_plot = TRUE){
   res = results$res
   tim = results$tim
   tau.idx = results$tau.idx
@@ -274,36 +270,75 @@ plot.t2cd_sigmoid = function(results, tau.range = c(10, 50), deg = 3,
   }
   
   # plotting
-  plot(tim[1,], res[1,], ylim = c(min(c(res, fit.vals)), max(c(res, fit.vals))), type = 'l', 
-       main = paste('Values fitted with d: ', round(opt_d,3), ' tau: ', round(mean(opt_tau),3)),
-       xlab = 'Time (hour)', ylab = 'Resistance (ohm)')
-  if (p > 1){
-    for (k in 2:p){
-      lines(tim[k,], res[k,])
-    }
-  }
-  if (is.na(opt_tau[1])){
-    lines(tim[1,], fit.vals[1,], col = "blue", lwd = 1)    
-  }else{
-    opt_tau.idx = which(tim[1,] == opt_tau[1])
-    lines(tim[1,1:opt_tau.idx], fit.vals[1,1:opt_tau.idx], col = "blue", lwd = 1)  
-    lines(tim[1,(opt_tau.idx):ncol(fit.vals)], fit.vals[1,(opt_tau.idx):ncol(fit.vals)], col = "green", lwd = 1)  
-    abline(v = opt_tau[1], lty = 2, col = "red")
-  }
-  if (p > 1){
-    for (k in 2:p){
-      if (is.na(opt_tau[k])){
-        lines(tim[k,], fit.vals[k,], col = "blue", lwd = 1)    
-      }else{
-        opt_tau.idx = which(tim[k,] == opt_tau[k])
-        lines(tim[k,1:opt_tau.idx], fit.vals[k,1:opt_tau.idx], col = "blue", lwd = 1)  
-        lines(tim[k,(opt_tau.idx):ncol(fit.vals)], fit.vals[k,(opt_tau.idx):ncol(fit.vals)], col = "green", lwd = 1)  
-        abline(v = opt_tau[k], lty = 2, col = "red")
+  if (return_plot){
+    plot(tim[1,], res[1,], ylim = c(min(c(res, fit.vals)), max(c(res, fit.vals))), type = 'l', 
+         main = paste('Values fitted with d: ', round(opt_d,3), ' tau: ', round(mean(opt_tau),3)),
+         xlab = 'Time (hour)', ylab = 'Resistance (ohm)')
+    if (p > 1){
+      for (k in 2:p){
+        lines(tim[k,], res[k,])
       }
     }
+    if (is.na(opt_tau[1])){
+      lines(tim[1,], fit.vals[1,], col = "blue", lwd = 1)    
+    }else{
+      opt_tau.idx = which(tim[1,] == opt_tau[1])
+      lines(tim[1,1:opt_tau.idx], fit.vals[1,1:opt_tau.idx], col = "blue", lwd = 1)  
+      lines(tim[1,(opt_tau.idx):ncol(fit.vals)], fit.vals[1,(opt_tau.idx):ncol(fit.vals)], col = "green", lwd = 1)  
+      abline(v = opt_tau[1], lty = 2, col = "red")
+    }
+    if (p > 1){
+      for (k in 2:p){
+        if (is.na(opt_tau[k])){
+          lines(tim[k,], fit.vals[k,], col = "blue", lwd = 1)    
+        }else{
+          opt_tau.idx = which(tim[k,] == opt_tau[k])
+          lines(tim[k,1:opt_tau.idx], fit.vals[k,1:opt_tau.idx], col = "blue", lwd = 1)  
+          lines(tim[k,(opt_tau.idx):ncol(fit.vals)], fit.vals[k,(opt_tau.idx):ncol(fit.vals)], col = "green", lwd = 1)  
+          abline(v = opt_tau[k], lty = 2, col = "red")
+        }
+      }
+    }
+    abline(v = tau.range, lty = 1, col = "red")    
   }
-  abline(v = tau.range, lty = 1, col = "red")
   
-  return(list(fit.vals = fit.vals, 
-              var.resd1 = var.resd1*attributes(res_mean)$'scaled:scale'^2))
+  if (p ==1){
+    opt_tau.idx = results$idx
+    return(list(fit.vals = fit.vals, 
+                fit.vals1 = fit1, fit.vals2 = mu.2,
+                var.resd1 = var.resd1,
+                wt = wt, scaling = attributes(res_mean)$'scaled:scale'))     
+  }else{
+    return(list(fit.vals = fit.vals, 
+                var.resd1 = var.resd1*attributes(res_mean)$'scaled:scale'^2,
+                wt = wt, scaling = attributes(res_mean)$'scaled:scale'))    
+  }
+}
+
+# parametric bootstrap using outputs from t2cd_step and plot.t2cd_step
+bootstrap_sample_sigmoid = function(results, plot_results, seed = 0){
+  
+  set.seed(seed)
+  res = results$res
+  tim = results$tim
+  N = length(res)
+  
+  # regime 1
+  fit.vals1 = plot_results$fit.vals1*plot_results$scaling
+  var.resd1 = plot_results$var.resd1*plot_results$scaling^2
+  noise1 = rnorm(N, 0, sqrt(var.resd1))
+  
+  # regime 2
+  opt_d = results$d
+  m = results$m
+  wt = plot_results$wt
+  x.2 = t(scale(t(res), center = F)) # scaling
+  diff_p = t(diffseries_keepmean(t(wt*(x.2-m)), opt_d))
+  sd.resd2 = sqrt(rowSums(wt*diff_p^2)/rowSums(wt))
+  sim = sim.fi(N, opt_d, sd.resd2)
+  seq_fi = sim$s 
+  
+  samp = c((1-wt)*(fit.vals1 + noise1) + wt*(seq_fi + m)*plot_results$scaling)
+  
+  return(list(res=matrix(samp, nrow=1), tim=tim))  
 }

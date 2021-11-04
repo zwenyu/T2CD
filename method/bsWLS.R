@@ -29,7 +29,8 @@ refitWLS = function(tim, res_mean, deg = 3, seqby = 1, resd.seqby = 5,
     fitcurr = fitnext
   }
   # smooth variance fit is preferred
-  return(list(fit.vals = fitcurr$fit.vals, var.resd = var.resd))
+  return(list(fit.vals = fitcurr$fit.vals, var.resd = var.resd,
+              model.vals = fitcurr$model.vals, model.resd = fitcurr$model.resd))
 }
 
 ### helper function for 1 iteration of fit
@@ -56,15 +57,16 @@ fitWLS1 = function(tim, res_mean, weights = NULL, deg = 3,
     # spline regression on log squared residuals
     resd.knots = seq(0, ceiling(max(tim)), by = resd.seqby)
     resd.bsdeg = splines.bs(tim, knots = resd.knots[2:(length(resd.knots)-1)], degree = deg)
-    resd.bs = lm(log(resd^2) ~ resd.bsdeg)
-    var.resd = exp(resd.bs$fitted.values)
+    resd.model = lm(log(resd^2) ~ resd.bsdeg)
+    var.resd = exp(resd.model$fitted.values)
   }else if (resd.fit == 'pen'){
     resd.knots = seq(0, ceiling(max(tim)), by = seqby)
-    resd.sp = smooth.spline(tim, log(resd^2), cv = TRUE,
+    resd.model = smooth.spline(tim, log(resd^2), cv = TRUE,
                           all.knots = FALSE, nknots = length(resd.knots))
-    var.resd = exp(resd.sp$y)
+    var.resd = exp(resd.model$y)
   }
-  return(list(fit.vals = fit.vals, var.resd = var.resd))
+  return(list(fit.vals = fit.vals, var.resd = var.resd, 
+              model.vals = model, model.resd = resd.model))
 }
 
 

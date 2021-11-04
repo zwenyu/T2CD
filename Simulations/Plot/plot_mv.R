@@ -1,6 +1,7 @@
 # set working directory as T2CD
 
 require(ggplot2)
+require(reshape2)
 load('./Simulations/Multivariate/simulate_mvTRUE3.RData')
 
 ### plot comparing T2CD estimate of d from univariate and multivariate methods
@@ -14,16 +15,16 @@ names(d_pool) = poolnames
 for (i in 1:simnum){
   m = 'mult'
   d_pool[[m]] = cbind(d_pool[[m]], 
-                      abs(cptresults[[i]]$d_step - d_list))
+                      abs(cptresults_comp[[i]]$d_step - d_list))
   
   m = 'univ'
   d_pool[[m]] = cbind(d_pool[[m]], 
-                      rowMeans(abs(cptresults[[i]]$d_univ_step - d_list)))
+                      rowMeans(abs(cptresults_comp[[i]]$d_univ_step - d_list)))
 }
 
 d_pool_t2cd = melt(d_pool$mult)[,c(1,3)]
 d_pool_univ = melt(d_pool$univ)[,c(1,3)]
-colnames(d_pool_t2cd) = colnames(d_pool_univ) = colnames(d_pool_mean) = 
+colnames(d_pool_t2cd) = colnames(d_pool_univ) =
   c('d', 'error')
 d_pool_t2cd$method = 'multivariate'
 d_pool_univ$method = 'univariate'

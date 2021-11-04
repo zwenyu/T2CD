@@ -30,7 +30,7 @@ simnum = 100
 d_list = seq(-0.45, 1.45, by = 0.2)
 tau_list = seq(15, 45, by = 5)
 taupercent_list = tau_list/70
-truetau_list = (floor((tau_list/70)*500)-1)*(70/499)
+truetau_list = tau_list
 
 # Calculate the number of cores
 no_cores = detectCores() - 1
