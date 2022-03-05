@@ -15,8 +15,9 @@ inf_dat = extractdata(dat.com, dat.info, expt = 1, freq = 1, gel = 1, inf = 1, n
 t.max = 72
 tim.ind = !is.na(inf_dat$tim[1,]) & inf_dat$tim[1,] <= t.max
 t.maxidx = which(tim.ind == T)
-res = inf_dat$res[5,t.maxidx] # 2
-tim = inf_dat$tim[5,t.maxidx]
+res = inf_dat$res[2,t.maxidx]
+res_mean = scale(res, center = F) 
+tim = inf_dat$tim[2,t.maxidx]
 
 # fit
 df1 = data.frame(tim=tim, res=res)
@@ -32,8 +33,7 @@ ggplot() +
 dev.off()
 
 # residuals
-r1 = (res[1:res_step$idx] - fit1$fit.vals1)/sqrt(fit1$var.resd1)
-r1 = r1/sd(r1)
+r1 = (res_mean[1:res_step$idx] - fit1$fit.vals1)/sqrt(fit1$var.resd1)
 Box.test(r1, lag = 20, type = "Ljung-Box")
 cairo_ps(file = './Application/Plot/Figures/mdck_inf_residual1_sq.eps', width = 4, height = 3, pointsize = 12)
 plot(tim[1:res_step$idx], r1, xlab = 'Time (hour)', ylab = 'Standardized Residuals')
@@ -46,8 +46,7 @@ dev.off()
 cairo_ps(file = './Application/Plot/Figures/mdck_inf_acf1_sq.eps', width = 4, height = 3, pointsize = 12)
 Acf(r1, main = 'ACF', lag.max=50, ci.col='grey')
 dev.off()
-r2 = res[(res_step$idx+1):length(res)] - fit1$fit.vals2
-r2 = r2/sd(r2)
+r2 = res_mean[(res_step$idx+1):length(res)] - fit1$fit.vals2
 cairo_ps(file = './Application/Plot/Figures/mdck_inf_residual2_sq.eps', width = 4, height = 3, pointsize = 12)
 plot(tim[(res_step$idx+1):length(res)], r2, xlab = 'Time (hour)', ylab = 'Standardized Residuals')
 dev.off()
