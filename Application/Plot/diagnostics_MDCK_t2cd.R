@@ -14,13 +14,6 @@ load("Cornell_MDCK_M_hominis_runs.RData")
 ### setup
 dat.info = list(gel=gel, inf=inf, nor=nor, null=null, wou=wou)
 
-# Calculate the number of cores
-no_cores = detectCores() - 1
-# Initiate cluster
-cl = makeCluster(no_cores, type = 'FORK')
-# each iteration of function output as a list entry
-# each function output is a named list
-
 # hypothesis testing by parametric bootstrap
 boot_test = function(K, results, plot_results, t_resd=FALSE){
   
@@ -38,6 +31,15 @@ boot_test = function(K, results, plot_results, t_resd=FALSE){
   
   return(test2_stat)
 }
+
+# Calculate the number of cores
+no_cores = detectCores() - 1
+# Initiate cluster
+cl = makeCluster(no_cores, type = 'FORK')
+clusterExport(cl, c("boot_test"), 
+              envir=environment())
+# each iteration of function output as a list entry
+# each function output is a named list
 
 # iterate through experiments, frequency, gel and inf/nor
 ecisfreq = function(f){
