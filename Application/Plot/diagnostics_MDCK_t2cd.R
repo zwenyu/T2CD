@@ -21,6 +21,24 @@ cl = makeCluster(no_cores, type = 'FORK')
 # each iteration of function output as a list entry
 # each function output is a named list
 
+# hypothesis testing by parametric bootstrap
+boot_test = function(K, results, plot_results, t_resd=FALSE){
+  
+  test2_stat = c()
+  for (k in 1:K){
+    samp = bootstrap_sample_step(results, plot_results, seed = k, t_resd = t_resd)
+    res_k = t2cd_step(samp, tau.range = c(50, 50), t_resd = t_resd, use_arf = F)
+    res_mean = scale(res_k$res, center = F) 
+    fit_step = plot.t2cd_step(res_k, tau.range = c(50, 50), use_arf = F, return_plot = FALSE)
+    r2 = res_mean[(res_k$idx+1):length(res_mean)] - fit_step$fit.vals2
+    test2_k = ks.test(r2/res_k$t_scale, "pt", res_k$t_df) # two-sided, exact
+    test2_k_stat = test2_k$statistic
+    test2_stat = c(test2_stat, test2_k_stat)
+  }
+  
+  return(test2_stat)
+}
+
 # iterate through experiments, frequency, gel and inf/nor
 ecisfreq = function(f){
   
@@ -49,7 +67,12 @@ ecisfreq = function(f){
           test1 = shapiro.test(r1)
           r2 = res_mean[(res_step$idx+1):length(res_mean)] - fit_step$fit.vals2
           test2 = ks.test(r2/res_step$t_scale, "pt", res_step$t_df) # two-sided, exact
-          mat_step = rbind(mat_step, c(test1$statistic, test1$p.value, test2$statistic, test2$p.value,
+          test2_stat = test2$statistic
+          
+          test2_stat_boot = boot_test(100, res_step, fit_step, t_resd = T)
+          test2_pval = mean(test2_stat_boot > test2_stat)
+          
+          mat_step = rbind(mat_step, c(test1$statistic, test1$p.value, test2_stat, test2_pval,
                                        res_step$tau, x, f, g, i, m, ptime[1]))
         }
       }

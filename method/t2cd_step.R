@@ -341,7 +341,7 @@ plot.t2cd_step = function(results, tau.range = c(10, 50), deg = 3,
 }
 
 # parametric bootstrap using outputs from t2cd_step and plot.t2cd_step
-bootstrap_sample_step = function(results, plot_results, seed = 0){
+bootstrap_sample_step = function(results, plot_results, seed = 0, t_resd = FALSE){
   
   set.seed(seed)
   res = results$res
@@ -359,8 +359,12 @@ bootstrap_sample_step = function(results, plot_results, seed = 0){
   m = results$m
   res_mean = scale(res, center = F) # scaling
   diff_p = c(diffseries_keepmean(matrix(res_mean[(opt_idx+1):N]-m, ncol = 1), opt_d))
-  sd.resd2 = sqrt(mean(diff_p^2))
-  sim = sim.fi(N-opt_idx, opt_d, sd.resd2)  
+  if (t_resd){
+    sim = sim.fi(N-opt_idx, opt_d, t_scale=results$t_scale, t_df=results$t_df, t_resd=TRUE)   
+  }else{
+    sd.resd2 = sqrt(mean(diff_p^2))
+    sim = sim.fi(N-opt_idx, opt_d, sd.resd2, t_resd=FALSE)      
+  }
   seq_fi = sim$s
   
   samp = c(fit.vals1 + noise1, (seq_fi + m)*plot_results$scaling)

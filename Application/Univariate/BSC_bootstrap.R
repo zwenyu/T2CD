@@ -18,8 +18,6 @@ cl = makeCluster(no_cores, type = 'FORK')
 # iterate through experiments, frequency, gel and inf/nor
 boot_k = function(k, results, plot_results, methodname){
   
-  samp = bootstrap_sample(results, plot_results, seed = k)
-  
   if (methodname=='step'){
     samp = bootstrap_sample_step(results, plot_results, seed = k)
     res = t2cd_step(samp, use_arf = F)    

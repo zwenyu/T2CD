@@ -124,8 +124,12 @@ diffseries_keepmean = function(x, d, incre = F){
 ### helper functions
 
 # simulates univariate FI series
-sim.fi = function(N, eff.d, sig=1){
-  noise = rnorm(N, sd = sig) # ordered from 1 to N
+sim.fi = function(N, eff.d, sig=1, t_scale=NA, t_df=NA, t_resd=FALSE){
+  if (t_resd){
+   noise = rt(N, df = t_df)*t_scale 
+  }else{
+    noise = rnorm(N, sd = sig) # ordered from 1 to N    
+  }
   dn_coeff = sapply(1:N, function(k){return(choose(eff.d, k)*(-1)**(k+1))})
   trend = c(0)
   s = c(noise[1])
