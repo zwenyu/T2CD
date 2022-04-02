@@ -40,11 +40,11 @@ ecisfreq = function(f){
           # step method
           sink('aux')
           s = proc.time()
-          res_step = t2cd_step(dat_m, tau.range = c(5, 45), use_arf = F)
+          res_step = t2cd_step(dat_m, tau.range = c(50, 50), use_arf = F)
           ptime = proc.time() - s
           sink(NULL)
           res_mean = scale(res_step$res, center = F) 
-          fit_step = plot.t2cd_step(res_step, tau.range = c(5, 45), use_arf = F, return_plot = FALSE)
+          fit_step = plot.t2cd_step(res_step, tau.range = c(50, 50), use_arf = F, return_plot = FALSE)
           r1 = (res_mean[1:res_step$idx] - fit_step$fit.vals1)/sqrt(fit_step$var.resd1)
           test1 = shapiro.test(r1)
           r2 = res_mean[(res_step$idx+1):length(res_mean)] - fit_step$fit.vals2
@@ -61,5 +61,5 @@ ecisfreq = function(f){
 
 cptresults = parLapply(cl, 1, ecisfreq)
 
-save.image('./Application/Univariate/diagnostics_bsc.RData')
+save.image('./Application/Univariate/diagnostics_tau50_bsc.RData')
 stopCluster(cl)

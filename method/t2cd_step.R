@@ -13,6 +13,7 @@ source('./method/bsWLS.R')
 # wrapper around search_dtau_step to fit with both ranges of d
 # and pick the fit with highest likelihood
 t2cd_step = function(dat, t.max = 72, tau.range = c(10, 50), deg = 3,
+                     t_resd = FALSE,
                      seqby = 1, resd.seqby = 5, 
                      use_arf = TRUE, use_scale = TRUE){
   # dat: input time series
@@ -22,9 +23,10 @@ t2cd_step = function(dat, t.max = 72, tau.range = c(10, 50), deg = 3,
   # segby, resd.seqby: interval between knots
   # use_arf: if true, use arfima estimates from arfima package
   # use_scale: if true, scale time series
-  res1 = search_dtau_step(dat, t.max, tau.range, deg, dflag = 'original',
-                           seqby = seqby, resd.seqby = resd.seqby,
-                           use_arf = use_arf, use_scale = use_scale)
+  res1 = search_dtau_step(dat, t.max, tau.range, deg,
+                          t_resd = t_resd,
+                          dflag = 'original', seqby = seqby, resd.seqby = resd.seqby,
+                          use_arf = use_arf, use_scale = use_scale)
   return(res1)
 }
 
@@ -33,6 +35,7 @@ t2cd_step = function(dat, t.max = 72, tau.range = c(10, 50), deg = 3,
 # grid search for d and tau
 # return the likelihood for each combination
 search_dtau_step = function(dat, t.max = 72, tau.range = c(10, 50), deg = 3,
+                            t_resd = FALSE,
                             dflag = 'fdiff', seqby = 1, resd.seqby = 5,
                             use_arf = TRUE, use_scale = TRUE){
   # select data below t.max
@@ -53,10 +56,17 @@ search_dtau_step = function(dat, t.max = 72, tau.range = c(10, 50), deg = 3,
   N = length(res_mean)
 
   # initialize result vectors
-  tau.idx = which(tim >= tau.range[1] & tim <= tau.range[2])
+  if (tau.range[1] == tau.range[2]){
+    diff = tim - tau.range[1]
+    tau.idx = which(diff > 0)[1]
+  }else{
+    tau.idx = which(tim >= tau.range[1] & tim <= tau.range[2])    
+  }
   M = c()
   d = c()
   m = c()
+  t_df = c()
+  t_scale = c()
   
   tol = 0.01
   if (is.null(dflag)){
@@ -70,6 +80,21 @@ search_dtau_step = function(dat, t.max = 72, tau.range = c(10, 50), deg = 3,
       dflag = 'original' # likelihood evaluated on original series
     }
   }
+  
+  if (t_resd){
+    # fit on post-50hr portion of sequence with normal errors for initialization
+    res_init = search_dtau_step(dat, t.max, c(50, 50), deg,
+                                t_resd = FALSE,
+                                dflag = dflag, seqby = seqby, resd.seqby = resd.seqby,
+                                use_arf = use_arf, use_scale = use_scale)  
+    fit_init = plot.t2cd_step(res_init, tau.range = c(50, 50), deg = deg, 
+                              use_arf = use_arf, use_scale = use_scale, return_plot = FALSE)
+    r2 = res_mean[(res_init$idx+1):length(res_mean)] - fit_init$fit.vals2
+    m_init = res_init$m
+    d_init = res_init$d
+    t_scale_init = sqrt(mean(r2^2))
+    t_df_init = 3
+  }  
   
   # iterate through each tau, return log-likelihood  
   for (j in 1:length(tau.idx)){
@@ -93,29 +118,62 @@ search_dtau_step = function(dat, t.max = 72, tau.range = c(10, 50), deg = 3,
         x.2 = diff(res_mean[(tau_j):N], 1)
       }
       # helper functions for loglikelihood
-      negloglik = function(param){
-        m = param[1]
-        dfrac = param[2]
-        
-        diff_p = c(diffseries_keepmean(matrix(x.2-m, ncol = 1), dfrac))
-        
-        neglogL = sum(diff_p^2)
-        
-        return(neglogL)
-      }
-      loglik = function(param){
-        m = param[1]
-        dfrac = param[2]
-        
-        diff_p = c(diffseries_keepmean(matrix(x.2-m, ncol = 1), dfrac))
-        
-        logL = sum(dnorm(diff_p, log = TRUE, sd = sd(diff_p)))
-        
-        return(logL)
+      if (t_resd){ # fit residual/t_scale using t-distribution with t_df
+        negloglik = function(param){
+          m = param[1]
+          dfrac = param[2]
+          t_df = param[4]
+          t_scale = param[3]/sqrt(t_df/(t_df - 2))
+          
+          diff_p = c(diffseries_keepmean(matrix(x.2-m, ncol = 1), dfrac))
+          logL = sum(log(gamma((t_df+1)/2)) - 0.5*log(t_df*pi) - log(gamma(t_df/2)) 
+                     - 0.5*(t_df+1)*log(1+((diff_p/t_scale)^2)/t_df) - log(t_scale))
+          neglogL = -logL
+          
+          return(neglogL)
+        }
+        loglik = function(param){
+          m = param[1]
+          dfrac = param[2]
+          t_df = param[4]
+          t_scale = param[3]/sqrt(t_df/(t_df - 2))
+          
+          diff_p = c(diffseries_keepmean(matrix(x.2-m, ncol = 1), dfrac))
+          logL = sum(log(gamma((t_df+1)/2)) - 0.5*log(t_df*pi) - log(gamma(t_df/2)) 
+                     - 0.5*(t_df+1)*log(1+((diff_p/t_scale)^2)/t_df) - log(t_scale)) 
+          
+          return(logL)
+        }
+                
+      }else{ # Gaussian distribution
+        negloglik = function(param){
+          m = param[1]
+          dfrac = param[2]
+          
+          diff_p = c(diffseries_keepmean(matrix(x.2-m, ncol = 1), dfrac))
+          
+          neglogL = sum(diff_p^2)
+          
+          return(neglogL)
+        }
+        loglik = function(param){
+          m = param[1]
+          dfrac = param[2]
+          
+          diff_p = c(diffseries_keepmean(matrix(x.2-m, ncol = 1), dfrac))
+          
+          logL = sum(dnorm(diff_p, log = TRUE, sd = sd(diff_p)))
+          
+          return(logL)
+        }
       }
       
       # optimizing
       if (use_arf){
+        if (t_resd){
+          stop('use_arf = TRUE option not implemented for t_resd = TRUE')
+        }
+          
         if (dflag == 'original'){
           arf = arfima::arfima(x.2)
           fit_d = arf$modes[[1]]$dfrac
@@ -127,17 +185,33 @@ search_dtau_step = function(dat, t.max = 72, tau.range = c(10, 50), deg = 3,
         n.2 = length(x.2)
         ll.2 = arf$modes[[1]]$loglik - (n.2/2)*log(2*pi) - n.2/2
       }else{
-        optim.2 = optim(par = c(mean(x.2), 0),
-                        fn = negloglik, method = "BFGS")
+        if (t_resd){
+          eps = 1e-5
+          optim.2 = optim(par = c(m_init, d_init, t_scale_init, t_df_init),
+                          fn = negloglik, method = "L-BFGS-B",
+                          lower = c(-Inf, -Inf, eps, 2+eps), 
+                          upper = c(Inf, Inf, Inf, 300))
+        }else{
+          optim.2 = optim(par = c(mean(x.2), 0),
+                          fn = negloglik, method = "BFGS")          
+        }
         if (dflag == 'original'){
           fit_d = optim.2$par[2]
         }else{
           fit_d = optim.2$par[2] + 1
         }
         fit_m = optim.2$par[1]
-        ll.2 = loglik(optim.2$par)
+        ll.2 = loglik(optim.2$par)[1]
+        if (t_resd){
+          fit_t_scale = optim.2$par[3]
+          fit_t_df = optim.2$par[4]
+        }else{
+          fit_t_scale = -1
+          fit_t_df = -1
+        }
       }
-      return(list(fit_M=ll.1 + ll.2,fit_d=fit_d,fit_m=fit_m))
+      return(list(fit_M=ll.1 + ll.2, fit_d=fit_d, fit_m=fit_m,
+                  fit_t_scale=fit_t_scale, fit_t_df = fit_t_df))
     }
     
     fit_res = tryCatch(fit(),
@@ -146,10 +220,14 @@ search_dtau_step = function(dat, t.max = 72, tau.range = c(10, 50), deg = 3,
       M = c(M, -Inf)
       d = c(d, NA)
       m = c(m, NA)
+      t_scale = c(m, NA)
+      t_df = c(m, NA)
     }else{
       M = c(M, fit_res$fit_M)
       d = c(d, fit_res$fit_d)
       m = c(m, fit_res$fit_m)      
+      t_scale = c(t_scale, fit_res$fit_t_scale)
+      t_df = c(t_df, fit_res$fit_t_df)
     }
   }
   
@@ -159,9 +237,11 @@ search_dtau_step = function(dat, t.max = 72, tau.range = c(10, 50), deg = 3,
   max.tau = tim[tau.idx[max.idx]]
   max.d = d[max.idx]
   max.m = m[max.idx]
-
+  max.t_df = t_df[max.idx]
+  max.t_scale = t_scale[max.idx]/sqrt(max.t_df/(max.t_df - 2))
+  
   return(list(M_df = M_df, res = res, tim = tim, tau.idx = tau.idx,
-              tau = max.tau, d = max.d, m = max.m,
+              tau = max.tau, d = max.d, m = max.m, t_scale = max.t_scale, t_df = max.t_df,
               idx = tau.idx[max.idx], logL = M[max.idx],
               dflag = dflag))
 }

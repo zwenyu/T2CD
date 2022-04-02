@@ -58,3 +58,46 @@ dev.off()
 cairo_ps(file = './Application/Plot/Figures/mdck_inf_acf2_sq.eps', width = 4, height = 3, pointsize = 12)
 Acf(r2, main = 'ACF', lag.max=50, ci.col='grey')
 dev.off()
+
+### plot summary diagnostics for MDCK and BSC
+
+load('./Application/Univariate/diagnostics_tau50_tdist_mdck.RData')
+cptresults_mdck = cptresults
+load('./Application/Univariate/diagnostics_tau50_bsc.RData')
+cptresults_bsc = cptresults
+
+# MDCK
+p.value_mdck = cptresults_mdck[[1]]$mat_step[,c('p.value1','p.value2')]
+colnames(p.value_mdck) = c('Trend', 'Confluence')
+p.value_mdck_melt = melt(p.value_mdck)
+colnames(p.value_mdck_melt) = c('idx', 'Regime', 'pvalue')
+p.value_mdck_melt$Regime = as.factor(p.value_mdck_melt$Regime)
+
+setEPS()
+cairo_ps(file = './Application/Plot/Figures/mdck_tau50_tdist_diagnostics.eps', width = 6, height = 3, pointsize = 12)
+  ggplot(p.value_mdck_melt[p.value_mdck_melt$Regime=='Confluence',], aes(x=Regime, y=pvalue)) + geom_boxplot() +
+  labs(y = "P-value", x = 'Regime') +
+  theme_bw(base_size = 20)
+dev.off()
+summary(p.value_mdck_melt[p.value_mdck_melt$Regime=='Trend','pvalue'])
+mean(p.value_mdck_melt[p.value_mdck_melt$Regime=='Trend','pvalue']<0.05)
+summary(p.value_mdck_melt[p.value_mdck_melt$Regime=='Confluence','pvalue'])
+mean(p.value_mdck_melt[p.value_mdck_melt$Regime=='Confluence','pvalue']<0.05)
+
+# BSC
+p.value_bsc = cptresults_bsc[[1]]$mat_step[,c('p.value1','p.value2')]
+colnames(p.value_bsc) = c('Trend', 'Confluence')
+p.value_bsc_melt = melt(p.value_bsc)
+colnames(p.value_bsc_melt) = c('idx', 'Regime', 'pvalue')
+p.value_bsc_melt$Regime = as.factor(p.value_bsc_melt$Regime)
+
+setEPS()
+cairo_ps(file = './Application/Plot/Figures/bsc_tau50_diagnostics.eps', width = 6, height = 3, pointsize = 12)
+ggplot(p.value_bsc_melt[p.value_bsc_melt$Regime=='Confluence',], aes(x=Regime, y=pvalue)) + geom_boxplot() +
+  labs(y = "P-value", x = 'Regime') +
+  theme_bw(base_size = 20)
+dev.off()
+summary(p.value_bsc_melt[p.value_bsc_melt$Regime=='Trend','pvalue'])
+mean(p.value_bsc_melt[p.value_bsc_melt$Regime=='Trend','pvalue']<0.05)
+summary(p.value_bsc_melt[p.value_bsc_melt$Regime=='Confluence','pvalue'])
+mean(p.value_bsc_melt[p.value_bsc_melt$Regime=='Confluence','pvalue']<0.05)
