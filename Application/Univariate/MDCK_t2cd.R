@@ -24,7 +24,7 @@ cl = makeCluster(no_cores, type = 'FORK')
 # iterate through experiments, frequency, gel and inf/nor
 ecisfreq = function(f){
   
-  mat_step = mat_sigmoid = matrix(NA, 0, 8)
+  mat_step = mat_sigmoid = matrix(NA, 0, 10)
   colnames(mat_step) = colnames(mat_sigmoid) = c('d', 'tau', 't_scale', 't_df', 
                                                  'expt', 'freq', 'gel', 'inf', 'm', 'time')
 
