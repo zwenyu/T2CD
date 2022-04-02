@@ -71,7 +71,7 @@ ecisfreq = function(f){
           test2 = ks.test(r2/res_step$t_scale, "pt", res_step$t_df) # two-sided, exact
           test2_stat = test2$statistic
           
-          test2_stat_boot = boot_test(100, res_step, fit_step, t_resd = T)
+          test2_stat_boot = boot_test(500, res_step, fit_step, t_resd = T)
           test2_pval = mean(test2_stat_boot > test2_stat)
           
           mat_step = rbind(mat_step, c(test1$statistic, test1$p.value, test2_stat, test2_pval,
