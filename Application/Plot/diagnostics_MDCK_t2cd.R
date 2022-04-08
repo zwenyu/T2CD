@@ -24,7 +24,8 @@ boot_test = function(K, results, plot_results, t_resd=FALSE){
     res_mean = scale(res_k$res, center = F) 
     fit_step = plot.t2cd_step(res_k, tau.range = c(50, 50), use_arf = F, return_plot = FALSE)
     r2 = res_mean[(res_k$idx+1):length(res_mean)] - fit_step$fit.vals2
-    test2_k = ks.test(r2/res_k$t_scale, "pt", res_k$t_df) # two-sided, exact
+    # test2_k = ks.test(r2/res_k$t_scale, "pt", res_k$t_df) # two-sided, exact
+    test2_k = shapiro.test(r2/res_k$t_scale)
     test2_k_stat = test2_k$statistic
     test2_stat = c(test2_stat, test2_k_stat)
   }
@@ -68,7 +69,8 @@ ecisfreq = function(f){
           r1 = (res_mean[1:res_step$idx] - fit_step$fit.vals1)/sqrt(fit_step$var.resd1)
           test1 = shapiro.test(r1)
           r2 = res_mean[(res_step$idx+1):length(res_mean)] - fit_step$fit.vals2
-          test2 = ks.test(r2/res_step$t_scale, "pt", res_step$t_df) # two-sided, exact
+          # test2 = ks.test(r2/res_step$t_scale, "pt", res_step$t_df) # two-sided, exact
+          test2 = shapiro.test(r2/res_step$t_scale)
           test2_stat = test2$statistic
           
           test2_stat_boot = boot_test(500, res_step, fit_step, t_resd = T)
@@ -86,7 +88,7 @@ ecisfreq = function(f){
 
 cptresults = parLapply(cl, 1, ecisfreq)
 
-save.image('./Application/Univariate/diagnostics_tau50_tdist_mdck.RData')
+save.image('./Application/Univariate/diagnostics_tau50_tdistSW_mdck.RData')
 stopCluster(cl)
 
 
