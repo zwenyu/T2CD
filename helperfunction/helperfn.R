@@ -140,6 +140,28 @@ sim.fi = function(N, eff.d, sig=1, t_scale=NA, t_df=NA, t_resd=FALSE){
   return(list(s = s, trend = trend))
 }
 
+# simulates univariate FI series, second version
+sim_fi = function(N, eff.d, sig=1, mu = 0, df = NA){
+  
+  if (is.na(df)) {
+    noise = rnorm(N, sd = sig) # ordered from 1 to N
+  } else {
+    noise = sig*sqrt((df - 2)/df)*rt(N, df = df)
+  }
+  dn_coeff = sapply(1:N, function(k){return(choose_robust(eff.d, k)*(-1)**(k+1))})
+  trend = c(mu)
+  s = c(trend[length(trend)] + noise[1])
+  for (i in 1:(N-1)){
+    trend = c(trend,
+              tr_fi(s = s[i:1], eff.d = eff.d, mu = mu, dn_coeff = dn_coeff))
+    # trend = c(trend, mu + sum((s[i:1] - mu)*dn_coeff[1:i]))
+    s = c(s, trend[length(trend)] + noise[i+1])
+    
+  }
+  # Note - diffseries_keepmean(s - mu, eff.d) recovers noise
+  return(list(s = s, trend = trend))
+}
+
 # simulates univariate ARFIMA series; first difference is ARFIMA if d>0.5
 sim.arf = function(N, eff.d, phip, piq, sig=1){
   phicoeff = runif(phip)

@@ -56,7 +56,7 @@ extractFeat = function(method, cellline = c('mdck', 'bsc'), freq = 1){
   
   # combine with d and tau
   if (cellline == 'mdck'){
-    load("./Application/Univariate/mdck.RData")
+    load("./Application/Univariate/mdck_tdist.RData")
   }else if (cellline == 'bsc'){
     load("./Application/Univariate/bsc.RData")
   }

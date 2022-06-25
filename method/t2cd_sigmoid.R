@@ -415,7 +415,7 @@ plot.t2cd_sigmoid = function(results, tau.range = c(10, 50), deg = 3,
 }
 
 # parametric bootstrap using outputs from t2cd_step and plot.t2cd_step
-bootstrap_sample_sigmoid = function(results, plot_results, seed = 0){
+bootstrap_sample_sigmoid = function(results, plot_results, seed = 0, t_resd = FALSE){
   
   set.seed(seed)
   res = results$res
@@ -435,6 +435,11 @@ bootstrap_sample_sigmoid = function(results, plot_results, seed = 0){
   diff_p = t(diffseries_keepmean(t(wt*(x.2-m)), opt_d))
   sd.resd2 = sqrt(rowSums(wt*diff_p^2)/rowSums(wt))
   sim = sim.fi(N, opt_d, sd.resd2)
+  if (t_resd){
+    sim = sim.fi(N, opt_d, t_scale=results$t_scale, t_df=results$t_df, t_resd=TRUE)
+  }else{
+    sim = sim.fi(N, opt_d, sd.resd2, t_resd=FALSE)
+  }  
   seq_fi = sim$s 
   
   samp = c((1-wt)*(fit.vals1 + noise1) + wt*(seq_fi + m)*plot_results$scaling)
