@@ -10,8 +10,8 @@ require(ggplot2)
 require(mvtnorm)
 
 source(paste(root, "/method/bsWLS.R", sep = ""))
-source(paste(root, "/method/t2cd_step.mv.R", sep = ""))
-source(paste(root, "/method/t2cd_sigmoid.mv.R", sep = ""))
+source(paste(root, "/method/t2cd_step_mv.R", sep = ""))
+source(paste(root, "/method/t2cd_sigmoid_mv.R", sep = ""))
 source(paste(root, "/helperfunction/helperfn.R", sep = ""))
 source(paste(root, "/helperfunction/logL_fima.R", sep = ""))
 
@@ -67,13 +67,13 @@ dat = extractdata(dat.com, dat.info, expt = x, freq = f, gel = g, inf = i, nor =
 
 # step method
 load(paste(root, "/Out/Data/mdck_step_estimates_mv_", par, ".RData", sep = ""))
-cptresults_step <- boot_k.mv(k = sim, res_step, plot_results_step, 'step')
+cptresults_step <- boot_k_mv(k = sim, res_step, plot_results_step, 'step')
 save(cptresults_step,
      file = paste(root, "/Out/Data/sim_mdck_step_estimates_mv_", par, "_", sim, ".RData", sep = ""))
 
 # weighted method
 load(paste(root, "/Out/Data/mdck_sigmoid_estimates_mv_", par, ".RData", sep = ""))
-cptresults_sigmoid <- boot_k.mv(k = sim, res_sigmoid, plot_results_sigmoid, 'sigmoid')
+cptresults_sigmoid <- boot_k_mv(k = sim, res_sigmoid, plot_results_sigmoid, 'sigmoid')
 save(cptresults_sigmoid,
      file = paste(root, "/Out/Data/sim_mdck_sigmoid_estimates_mv_",
                   par, "_", sim, ".RData", sep = ""))

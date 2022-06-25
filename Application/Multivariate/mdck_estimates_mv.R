@@ -10,8 +10,8 @@ require(ggplot2)
 require(mvtnorm)
 
 source(paste(root, "/method/bsWLS.R", sep = ""))
-source(paste(root, "/method/t2cd_step.mv.R", sep = ""))
-source(paste(root, "/method/t2cd_sigmoid.mv.R", sep = ""))
+source(paste(root, "/method/t2cd_step_mv.R", sep = ""))
+source(paste(root, "/method/t2cd_sigmoid_mv.R", sep = ""))
 source(paste(root, "/helperfunction/helperfn.R", sep = ""))
 source(paste(root, "/helperfunction/logL_fima.R", sep = ""))
 
@@ -43,7 +43,7 @@ dat = extractdata(dat.com, dat.info, expt = x, freq = f, gel = g, inf = i, nor =
 
 # step method
 res_step = t2cd_step_mv(dat, t_resd = T)
-plot_results_step = plot.t2cd_step.mv(res_step, use_arf = F, return_plot = FALSE)
+plot_results_step = plot.t2cd_step_mv(res_step, use_arf = F, return_plot = FALSE)
 save(pars, par, res_step, plot_results_step, 
      file = paste(root, "/Out/Data/mdck_step_estimates_mv_", par, ".RData", sep = ""))
 
