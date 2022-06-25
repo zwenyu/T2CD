@@ -4,10 +4,310 @@ require(splines)
 require(ggplot2)
 require(mvtnorm)
 source('./method/bsWLS.R')
-source('./method/t2cd_sigmoid.R')
 source('./helperfunction/helperfn.R')
 
-# loglikelihood
+# helper functions from univariate method
+loglik_res_sigmoid_alpha = function(param,
+                                    tim_cp = NULL, tau.idx = NULL,
+                                    x, ll.1,
+                                    pen = FALSE, C = NULL, t_resd = FALSE,
+                                    rest) {
+  loglik_res(param = c(param, rest), tim_cp = tim_cp, tau.idx = tau.idx,
+             x = x, ll.1 = ll.1, pen = pen, C = C, t_resd = t_resd,
+             sigmoid = TRUE)
+}
+
+loglik_res_sigmoid_rest = function(param,
+                                   tim_cp = NULL, tau.idx = NULL,
+                                   x, ll.1,
+                                   pen = FALSE, C = NULL, t_resd = FALSE,
+                                   alpha) {
+  loglik_res(param = c(alpha, param), tim_cp = tim_cp, tau.idx = tau.idx,
+             x = x, ll.1 = ll.1, pen = pen, C = C, t_resd = t_resd,
+             sigmoid = TRUE)
+}
+
+get.wt <- function(alpha, tim_cp, tau.idx, N) {
+  alpha0 <- alpha[1]
+  alpha1 <- alpha[2]
+  wt_cp = sigmoid(alpha0+alpha1*tim_cp) # 0 to 1
+  wt = c(rep(wt_cp[1], tau.idx[1]-1),
+         wt_cp,
+         rep(ifelse(wt_cp[length(wt_cp)] != 0, wt_cp[length(wt_cp)], 1),
+             N-tau.idx[length(tau.idx)]))
+  return(wt)
+}
+
+loglik_res = function(param, sigmoid = TRUE,
+                      tim_cp = NULL, tau.idx = NULL,
+                      x, ll.1,
+                      pen = FALSE, C = NULL, t_resd = FALSE,
+                      idx = NULL) {
+  
+  if (sigmoid) {
+    alpha0 = param[1]
+    alpha1 = param[2]
+    
+    # weights
+    wt <- get.wt(alpha = c(alpha0, alpha1), tim_cp = tim_cp, tau.idx = tau.idx,
+                 N = length(x))
+    k <- 2
+  } else {
+    wt <- c(rep(0, idx), rep(1, (length(x) - idx)))
+    k <- 0
+  }
+  dfrac = param[k + 1]
+  
+  if (t_resd) {
+    df = param[length(param)]
+  }
+  
+  if (((length(param) - k) == 1 & !t_resd)) {
+    m <- get.m(x.2 = x, dfrac = dfrac, wt = wt)
+    sd <- get.sd(x.2 = x, dfrac = dfrac, mean = m, wt = wt)
+  } else if ((length(param) - k) == 2 & !t_resd) {
+    m <- param[k + 2]
+    sd <- get.sd(x.2 = x, dfrac = dfrac, mean = m, wt = wt)
+  } else if (((length(param) - k) == 3) & !t_resd | t_resd) {
+    m <- param[k + 2]
+    sd <- param[k + 3]
+  }
+  
+  logL = sum((1-wt)*ll.1) +
+    ifelse(!t_resd,
+           loglik_res_step(par = c(dfrac, m, sd), x.2 = x, wt = wt),
+           loglik_t_res_step(par = c(dfrac, m, sd, df), x.2 = x, wt = wt)) +
+    ifelse(pen, C*sum(wt[length(wt)] - wt[1]), 0)
+  
+  return(logL)
+}
+
+t2cd_sigmoid = function(dat, t.max = 72, tau.range = c(10, 50),
+                        init.tau = c(15, 30, 45), deg = 3, C = 1000,
+                        seqby = 1, resd.seqby = 5, use_scale = TRUE,
+                        t_resd = FALSE, prof = TRUE, several.init = TRUE){
+  # dat: input time series
+  # t.max: cutoff for time considered
+  # tau.range candidate change point range
+  # init.tau: candidate taus to initialize learning
+  # deg: degree for B-spline
+  # C: regularization coefficient
+  # segby, resd.seqby: interval between knots
+  # use_scale: if true, scale time series
+  res1 = search_dtau_sigmoid(dat, t.max, tau.range, init.tau, deg, C,
+                             seqby = seqby, resd.seqby = resd.seqby, use_scale = use_scale,
+                             t_resd = t_resd, prof = prof, several.init = several.init)
+  # increase C if change point not in candidate range
+  multiplier = 2
+  while (is.na(res1$tau)){
+    C_new = multiplier*C
+    res1 = search_dtau_sigmoid(dat, t.max, tau.range, init.tau, deg, C_new,
+                               seqby = seqby, resd.seqby = resd.seqby, use_scale = use_scale,
+                               t_resd = t_resd, prof = prof, several.init = several.init)
+    multiplier = multiplier + 1
+  }
+  return(res1)
+}
+
+sigmoid = function(a){return(1/(1+exp(-a)))}
+softmax = function(a,b){
+  return(exp(a)/(exp(a) + exp(b)))
+}
+
+search_dtau_sigmoid = function(dat, t.max = 72, tau.range = c(10, 50),
+                               init.tau = c(15, 30, 45), deg = 3, C = 1000,
+                               seqby = 1, resd.seqby = 5, use_scale = T,
+                               t_resd = FALSE, prof = TRUE, several.init = T){
+  # select data below t.max
+  if (is.na(t.max)){
+    t.max = min(apply(dat$tim, 1, max, na.rm = T))
+  }
+  
+  tim.ind = !is.na(dat$tim) & dat$tim <= t.max
+  t.maxidx = which(apply(tim.ind, 2, all) == T)
+  
+  res = matrix(dat$res[, t.maxidx], nrow = nrow(dat$res))
+  tim = matrix(dat$tim[, t.maxidx], nrow = nrow(dat$tim))
+  if (use_scale){
+    res_mean = t(scale(t(res), center = F)) # scaling
+  }else{
+    res_mean = res
+  }
+  N = ncol(res_mean)
+  
+  # points in change range
+  tau.idx = which(apply(tim >= tau.range[1] & tim <= tau.range[2], 2, all))
+  tim_cp = matrix(tim[,tau.idx], nrow = nrow(tim))
+  
+  # optimize for spline component
+  fit1 = refitWLS(tim, res_mean, deg = deg,
+                  seqby = seqby, resd.seqby = resd.seqby)
+  resd1 = res_mean - fit1$fit.vals
+  var.resd1 = fit1$var.resd
+  ll.1.i = dnorm(resd1, log = TRUE, sd = sqrt(var.resd1))
+  
+  x = res_mean
+  lastN = N
+  
+  opt_logL = -Inf
+  if (several.init) {
+    for (tau_i in init.tau){
+      tau_i.idx = which.min(apply(tim <= tau_i, 2, all) == T)
+      start <- c(-tau_i, 1, 0)
+      lower <- rep(-Inf, length(start))
+      upper <- rep(Inf, length(start))
+      if (!prof & !t_resd) {
+        start <- c(start, mean(x[tau_i.idx:lastN]), sd(x[tau_i.idx:lastN]))
+        lower <- c(lower, rep(-Inf, 2))
+        upper <- c(upper, rep(Inf, 2))
+      }
+      if (t_resd) {
+        start <- c(start, mean(x[tau_i.idx:lastN]), sd(x[tau_i.idx:lastN]), 3)
+        lower <- c(lower, -Inf, -Inf, 2 + 10^(-14))
+        upper <- c(upper, Inf, Inf, 300)
+      }
+      optim_i = optim(par = start,
+                      fn = loglik_res, method = "L-BFGS-B",
+                      tim_cp = tim_cp, tau.idx = tau.idx, x = x,
+                      ll.1 = ll.1.i, pen = TRUE, C = C,
+                      control = list("fnscale" = -1), t_resd = t_resd,
+                      lower = lower, upper = upper, sigmoid = TRUE)
+      logL_i = loglik_res(optim_i$par,
+                          tim_cp = tim_cp, tau.idx = tau.idx,
+                          x = x, ll.1 = ll.1.i, t_resd = t_resd,
+                          sigmoid = TRUE)
+      if (logL_i > opt_logL){
+        opt_logL = logL_i
+        optim_params = optim_i
+        fit.vals <- fit1$fit.vals
+        var.resd <- var.resd1
+        ll.1 = ll.1.i
+      }
+    }
+    opt_param = optim_params$par
+  } else {
+    
+    tau_i = 50
+    tau_i.idx = which.min(apply(tim <= tau_i, 2, all) == T)
+    
+    start <- c(0)
+    lower <- rep(-Inf, length(start))
+    upper <- rep(Inf, length(start))
+    if (!prof & !t_resd) {
+      start <- c(start, mean(x[tau_i.idx:lastN]), sd(x[tau_i.idx:lastN]))
+      lower <- c(lower, rep(-Inf, 2))
+      upper <- c(upper, rep(Inf, 2))
+    }
+    if (t_resd) {
+      start <- c(start, mean(x[tau_i.idx:lastN]), sd(x[tau_i.idx:lastN]), 3)
+      lower <- c(lower, -Inf, -Inf, 2 + 10^(-14))
+      upper <- c(upper, Inf, Inf, 300)
+    }
+    
+    initial <- optim(par = start,
+                     fn = loglik_res, method = "L-BFGS-B",
+                     x = x, idx = tau_i.idx,
+                     ll.1 = ll.1,
+                     control = list("fnscale" = -1), t_resd = t_resd,
+                     lower = lower, upper = upper, sigmoid = FALSE)
+    
+    
+    start <- c(-tau_i, 1)
+    lower.alpha <- c(-Inf, -Inf)
+    upper.alpha <- c(Inf, Inf)
+    
+    optim_alpha = optim(par = start,
+                        fn = loglik_res_sigmoid_alpha, method = "L-BFGS-B",
+                        tim_cp = tim_cp, tau.idx = tau.idx, x = x,
+                        ll.1 = ll.1, pen = TRUE, C = C,
+                        control = list("fnscale" = -1), t_resd = t_resd,
+                        lower = lower.alpha, upper = upper.alpha, rest = initial$par)
+    
+    optim_rest = optim(par = initial$par,
+                       fn = loglik_res_sigmoid_rest, method = "L-BFGS-B",
+                       tim_cp = tim_cp, tau.idx = tau.idx, x = x,
+                       ll.1 = ll.1, pen = TRUE, C = C,
+                       control = list("fnscale" = -1), t_resd = t_resd,
+                       lower = lower, upper = upper, alpha = optim_alpha$par)
+    
+    logL_i = loglik_res(c(optim_alpha$par, optim_rest$par),
+                        tim_cp = tim_cp, tau.idx = tau.idx,
+                        x = x, ll.1 = ll.1, t_resd = t_resd,
+                        sigmoid = TRUE)
+    while (abs(logL_i - opt_logL) > 10^(-3)) {
+      
+      opt_logL <- logL_i
+      
+      optim_alpha = optim(par = optim_alpha$par,
+                          fn = loglik_res_sigmoid_alpha, method = "L-BFGS-B",
+                          tim_cp = tim_cp, tau.idx = tau.idx, x = x,
+                          ll.1 = ll.1, pen = TRUE, C = C,
+                          control = list("fnscale" = -1), t_resd = t_resd,
+                          lower = lower.alpha, upper = upper.alpha, rest = optim_rest$par)
+      
+      optim_rest = optim(par = optim_rest$par,
+                         fn = loglik_res_sigmoid_rest, method = "L-BFGS-B",
+                         tim_cp = tim_cp, tau.idx = tau.idx, x = x,
+                         ll.1 = ll.1, pen = TRUE, C = C,
+                         control = list("fnscale" = -1), t_resd = t_resd,
+                         lower = lower, upper = upper, alpha = optim_alpha$par)
+      
+      logL_i = loglik_res(c(optim_alpha$par, optim_rest$par),
+                          tim_cp = tim_cp, tau.idx = tau.idx,
+                          x = x, ll.1 = ll.1, t_resd = t_resd,
+                          sigmoid = TRUE)
+      
+      
+      
+    }
+    opt_param = c(optim_alpha$par, optim_rest$par)
+  }
+  
+  alpha0 = opt_param[1]
+  alpha1 = opt_param[2]
+  opt_d = opt_param[3]
+  
+  
+  # weights
+  wt <- get.wt(alpha = c(alpha0, alpha1), tim_cp = tim_cp, tau.idx = tau.idx,
+               N = length(x))
+  
+  opt_tau.idx = which(wt>=0.5, arr.ind = TRUE)[1]-1
+  opt_tau = tim[opt_tau.idx[1]]
+  
+  # range of change location
+  opt_taurange1.idx = which(wt>=0.1, arr.ind = TRUE)[1]-1
+  opt_taurange2.idx = which(wt>=0.9, arr.ind = TRUE)[1]-1
+  opt_taurange1 = tim[opt_taurange1.idx[1]]
+  opt_taurange2 = tim[opt_taurange2.idx[1]]
+  opt_taurange1[is.na(opt_taurange1)] = tau.range[1]
+  opt_taurange2[is.na(opt_taurange2)] = tau.range[2]
+  
+  if (t_resd) {
+    opt_m <- opt_param[4]
+    opt_sd <- abs(opt_param[5])
+    opt_df <- opt_param[6]
+  } else {
+    if (prof) {
+      opt_m <- get.m(x.2 = x, dfrac = opt_d, wt = wt)
+      opt_sd <- get.sd(x.2 = x, dfrac = opt_d, mean = opt_m, wt = wt)
+    } else if (!prof) {
+      opt_m <- opt_param[4]
+      opt_sd <- abs(opt_param[5])
+    }
+    opt_df = NA
+  }
+  
+  return(list(res = res, tim = tim, tau.idx = tau.idx, m = opt_m,
+              sd = opt_sd, df = opt_df,
+              d = opt_d, tau = opt_tau, idx = opt_tau.idx,
+              tau.range1 = opt_taurange1, tau.range2 = opt_taurange2,
+              param = opt_param, logL = opt_logL,
+              fit.vals = fit.vals, var.resd = var.resd,
+              ll.1 = ll.1))
+}
+
+# helper functions for multivariate loglikelihood
 loglik_res_sigmoid_mv = function(param, tim_cp, tau.idx, p, x,
                                  ll.1.mat, alpha0, alpha1,
                                  C = NULL, pen = FALSE, t_resd = FALSE){
