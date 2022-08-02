@@ -46,19 +46,19 @@ save.image('./Simulations/Univariate/smalld_boot.RData')
 stopCluster(cl)
 
 # small d
-# num_boot = 500
-# load("./Simulations/Univariate/smalld_boot.RData")
-# results$d # -0.5321728, true -0.45
-# results$tau # 24.8926, true 25
-# # CI
-# tau = c()
-# d = c()
-# for (i in 1:num_boot){
-#   tau = c(tau, cptresults[[i]]$tau)
-#   d = c(d, cptresults[[i]]$d)
-# }
-# quantile(d, probs=c(0.05,0.95)) # -0.634181 -0.452950 
-# quantile(tau, probs=c(0.05,0.95)) # 24.55847 28.23389
+num_boot = 500
+load("./Simulations/Univariate/smalld_boot.RData")
+results$d # -0.5321728, true -0.45
+results$tau # 24.8926, true 25
+# CI
+tau = c()
+d = c()
+for (i in 1:num_boot){
+  tau = c(tau, cptresults[[i]]$tau)
+  d = c(d, cptresults[[i]]$d)
+}
+quantile(d, probs=c(0.05,0.95)) # -0.6364618 -0.4469413
+quantile(tau, probs=c(0.05,0.95)) # 24.39141 27.89976
 
 # large d
 num_boot = 500
@@ -72,5 +72,5 @@ for (i in 1:num_boot){
   tau = c(tau, cptresults[[i]]$tau)
   d = c(d, cptresults[[i]]$d)
 }
-quantile(d, probs=c(0.05,0.95)) # 1.16829 1.36128 
-quantile(tau, probs=c(0.05,0.95)) # 23.87351 48.44869
+quantile(d, probs=c(0.05,0.95)) # 1.167315 1.357555 
+quantile(tau, probs=c(0.05,0.95)) # 24.54177 48.13126

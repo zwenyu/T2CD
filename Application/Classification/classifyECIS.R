@@ -22,7 +22,7 @@ bsc_ftd_sigmoid %>% group_by(expt, gel, inf) %>%
   summarise(mean = mean(d), sd = sd(d))
 
 # perform classfication by LDA
-classifer='qda'
+classifer='1da'
 mdck_acc_step = classify(mdck_ftd_step, classifer)
 bsc_acc_step = classify(bsc_ftd_step, classifer)
 mdck_acc_sigmoid = classify(mdck_ftd_sigmoid, classifer)
